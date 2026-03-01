@@ -1,6 +1,6 @@
 {
   "name": "@payclaw/badge",
-  "version": "0.1.0",
+  "version": "0.3.0",
   "description": "Prove your agent is an authorized actor, not a bot. MCP-native identity declaration for agent commerce.",
   "bin": "dist/index.js",
   "main": "dist/index.js",
@@ -26,8 +26,15 @@
     "@types/node": "^20.0.0"
   },
   "keywords": [
-    "payclaw", "mcp", "agent", "identity", "commerce",
-    "badge", "compliance", "shopping", "agentic"
+    "payclaw",
+    "mcp",
+    "agent",
+    "identity",
+    "commerce",
+    "badge",
+    "compliance",
+    "shopping",
+    "agentic"
   ],
   "license": "MIT",
   "repository": {
