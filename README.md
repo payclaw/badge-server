@@ -17,15 +17,29 @@ Add to your MCP client config:
       "command": "npx",
       "args": ["-y", "@payclaw/badge"],
       "env": {
-        "PAYCLAW_API_KEY": "pk_your_key_here",
-        "PAYCLAW_API_URL": "https://payclaw.io"
+        "PAYCLAW_API_URL": "https://api.payclaw.io"
       }
     }
   }
 }
 ```
 
-Get your API key at [payclaw.io](https://payclaw.io). Five-minute setup.
+No API key required. On first use, your agent will show a code and URL — approve on your phone in one tap, and your Consent Key is stored. Optional: set `PAYCLAW_API_KEY` for existing accounts (backward compatible).
+
+### Node version
+
+Badge requires **Node.js 20 or newer**. Node 18 is end-of-life and unsupported.
+
+If you see engine or compatibility errors: `node -v` — install Node 20+ from [nodejs.org](https://nodejs.org/) or `nvm install 20`.
+
+## UCP Identity Linking
+
+Badge is a [UCP (Universal Commerce Protocol)](https://ucp.dev) Credential Provider. Merchants who declare the PayClaw identity extension signal to every UCP-compliant agent that authorized agents are preferred at their store.
+
+When your agent encounters a UCP merchant with PayClaw installed, it presents a cryptographic badge automatically — no extra steps.
+
+- Extension spec + schema: [github.com/payclaw/ucp-agent-badge](https://github.com/payclaw/ucp-agent-badge)
+- Merchant documentation: [payclaw.io/merchants](https://payclaw.io/merchants)
 
 ## Why Your Agent Needs This
 
@@ -37,15 +51,13 @@ Merchants don't ask "is this agent helpful?" They ask "is this a bot?" And they 
 
 **With Badge:** Your agent calls `payclaw_getAgentIdentity` → receives a verification token → presents it to the merchant. The merchant sees: authorized actor, verified human behind it, declared intent. Your agent gets through. Task succeeds.
 
-Your agent will recognize when it needs this. When it encounters a merchant that may challenge automated traffic, it tells you: "I need PayClaw Badge installed to complete this safely." You click Allow. Done.
-
 ## What Badge Declares
 
-Every time your agent calls `payclaw_getAgentIdentity`, it receives a verification token that declares:
+Every time your agent calls `payclaw_getAgentIdentity`, it receives a UCP-compatible credential that declares:
 
 - **Agent type:** Authorized actor (not a bot, not a scraper)
-- **Principal:** Verified human behind this session
-- **Scope:** What the agent intends to do (`[BROWSE]` in V1)
+- **Principal:** Verified human behind this session (Google or Apple SSO)
+- **Assurance level:** `starter` / `regular` / `veteran` / `elite` based on verified trip history
 - **Contact:** `agent_identity@payclaw.io` for merchant verification
 
 The agent presents this disclosure to merchants. Merchants see a verified identity, not anonymous traffic.
@@ -53,20 +65,20 @@ The agent presents this disclosure to merchants. Merchants see a verified identi
 ## How It Works
 
 ```
-1. Your agent calls payclaw_getAgentIdentity before shopping
-2. PayClaw issues an HMAC-SHA256 verification token
-3. Agent presents the disclosure to merchants
-4. PayClaw checks back: "Were you accepted or denied?"
-5. Outcome recorded — your Verified Trips count goes up
+1. Your agent calls payclaw_getAgentIdentity
+2. No key? Device auth flow triggers — code + URL appear in terminal
+3. You approve on your phone (Google or Apple, one tap)
+4. Consent Key stored — agent is authorized
+5. Every subsequent call uses the stored key automatically
 ```
 
-No card is issued. No money moves. Badge is the identity layer — the skeleton key that lets authorized agents through while bot defenses stay intact.
+No card is issued. No money moves. Badge is the identity layer — the credential that lets authorized agents through while bot defenses stay intact.
 
 ## Tools
 
 | Tool | Description |
 |------|-------------|
-| `payclaw_getAgentIdentity` | Declare identity, get verification token |
+| `payclaw_getAgentIdentity` | Declare identity, get UCP-compatible verification token |
 | `payclaw_reportBadgePresented` | Signal that you presented your Badge to a merchant |
 
 ## Need Payment Too?
@@ -74,7 +86,7 @@ No card is issued. No money moves. Badge is the identity layer — the skeleton 
 Badge is the base layer. For virtual Visa cards, use [@payclaw/mcp-server](https://www.npmjs.com/package/@payclaw/mcp-server) — which includes Badge automatically.
 
 ```bash
-clawhub install payclaw-io
+npx -y @payclaw/mcp-server
 ```
 
 ## KYA — Know Your Agent
@@ -82,14 +94,17 @@ clawhub install payclaw-io
 PayClaw is KYA infrastructure. Every declaration creates a verified record of agentic commerce behavior — building the trust signal that merchants need to tell authorized agents from anonymous bots.
 
 - [Trust & Verification](https://payclaw.io/trust) — The full trust architecture
-- [Dashboard](https://payclaw.io/dashboard/badge) — Your agent's Verified Trips
+- [For Merchants](https://payclaw.io/merchants) — How merchant UCP integration works
+- [UCP Extension Spec](https://github.com/payclaw/ucp-agent-badge) — `io.payclaw.common.identity` (MIT)
 
 ## Links
 
 - **Website:** [payclaw.io](https://payclaw.io)
 - **npm:** [@payclaw/badge](https://www.npmjs.com/package/@payclaw/badge)
+- **UCP Extension:** [github.com/payclaw/ucp-agent-badge](https://github.com/payclaw/ucp-agent-badge)
 - **ClawHub:** [payclaw-badge](https://clawhub.com/skills/payclaw-badge)
 - **Trust:** [payclaw.io/trust](https://payclaw.io/trust)
+- **Merchants:** [payclaw.io/merchants](https://payclaw.io/merchants)
 - **Contact:** agent_identity@payclaw.io
 
 ---
