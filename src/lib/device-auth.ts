@@ -8,8 +8,14 @@ function getBaseUrl(): string {
   const url = process.env.PAYCLAW_API_URL;
   if (url && url.trim().length > 0) {
     const trimmed = url.trim().replace(/\/+$/, "");
-    if (trimmed.startsWith("https://") || trimmed.startsWith("http://localhost")) {
-      return trimmed;
+    try {
+      const parsed = new URL(trimmed);
+      const isLoopback = ["localhost", "127.0.0.1", "::1"].includes(parsed.hostname);
+      if (parsed.protocol === "https:" || (parsed.protocol === "http:" && isLoopback)) {
+        return trimmed;
+      }
+    } catch {
+      // fall through to DEFAULT_API_URL
     }
   }
   return DEFAULT_API_URL;
@@ -60,7 +66,7 @@ export async function initiateDeviceAuth(): Promise<DeviceAuthResponse> {
     throw new Error("Invalid device auth response");
   }
   const interval = Math.max(1, Number(data.interval) || 5);
-  const expiresIn = Number(data.expires_in) || 600;
+  const expiresIn = Math.max(1, Number(data.expires_in) || 600);
   return { ...data, interval, expires_in: expiresIn };
 }
 
