@@ -3,11 +3,19 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
 import { getAgentIdentity, formatIdentityResponse } from "./tools/getAgentIdentity.js";
-import { initSampling, onTripStarted, onServerClose } from "./sampling.js";
+import {
+  initSampling,
+  onTripStarted,
+  onIdentityPresented,
+  onServerClose,
+  reportOutcomeFromAgent,
+} from "./sampling.js";
+import { handleReportBadgePresented } from "./lib/report-badge-presented-handler.js";
+import { reportBadgeNotPresented } from "./lib/report-badge.js";
 
 const server = new McpServer({
   name: "payclaw-badge",
-  version: "0.4.0",
+  version: "0.7.0",
 });
 
 server.tool(
@@ -47,23 +55,82 @@ No card is issued. No money moves. For payment, use payclaw_getCard from @paycla
 
 server.tool(
   "payclaw_reportBadgePresented",
-  `Report that you just presented your PayClaw Badge identity to a merchant. Call this AFTER showing the agent_disclosure text to a merchant.
+  `Report that you are about to present your PayClaw Badge to a merchant.
 
-PayClaw will briefly check back with you to confirm whether the merchant accepted your declaration.`,
-  {},
-  async () => {
-    const apiKey = process.env.PAYCLAW_API_KEY;
+Call this AFTER payclaw_getAgentIdentity and BEFORE including the badge token in a
+merchant request. This tells PayClaw you are actively using your badge at a specific
+merchant — it starts the outcome tracking window and logs the presentation event.
 
-    if (!apiKey) {
-      return {
-        content: [{ type: "text", text: JSON.stringify({ status: "error", message: "No API key configured" }) }],
-      };
-    }
+When Extended Auth is enabled, PayClaw checks back 7 seconds later. Otherwise, call payclaw_reportBadgeOutcome when you know the result.`,
+  {
+    verification_token: z.string().describe(
+      "The verification_token returned by payclaw_getAgentIdentity"
+    ),
+    merchant: z.string().max(200).describe(
+      "The merchant or website where you are presenting the badge (e.g., 'starbucks.com')"
+    ),
+    context: z
+      .enum(["arrival", "addtocart", "checkout", "other"])
+      .optional()
+      .describe(
+        "Optional: when Extended Auth is enabled, in what state you presented (arrival, addtocart, checkout, other)"
+      ),
+  },
+  async ({ verification_token, merchant, context }) =>
+    handleReportBadgePresented(verification_token, merchant, context)
+);
 
+server.tool(
+  "payclaw_reportBadgeOutcome",
+  `Report how the merchant responded when you presented your PayClaw Badge.
+
+Call this after payclaw_reportBadgePresented when you know whether the merchant accepted or denied you. Use when Extended Auth is disabled, or to report earlier than the 7-second check.`,
+  {
+    verification_token: z.string().describe(
+      "The verification_token returned by payclaw_getAgentIdentity"
+    ),
+    merchant: z.string().max(200).describe(
+      "The merchant where you presented (e.g., 'starbucks.com')"
+    ),
+    outcome: z
+      .enum(["accepted", "denied", "inconclusive"])
+      .describe(
+        "accepted = merchant let you through; denied = blocked/bot-walled; inconclusive = unknown or timed out"
+      ),
+  },
+  async ({ verification_token, merchant, outcome }) => {
+    reportOutcomeFromAgent(verification_token, merchant, outcome);
     return {
       content: [{
         type: "text",
-        text: "✓ Badge presentation recorded. PayClaw will check back with you shortly to confirm the outcome.",
+        text: `✓ Outcome recorded: ${outcome} at ${merchant}`,
+      }],
+    };
+  }
+);
+
+server.tool(
+  "payclaw_reportBadgeNotPresented",
+  `Report that you did NOT present your PayClaw Badge at a merchant.
+
+Call this when you have a badge but chose not to present it (e.g., abandoned cart, merchant didn't ask).`,
+  {
+    verification_token: z.string().describe(
+      "The verification_token from payclaw_getAgentIdentity"
+    ),
+    merchant: z.string().max(200).describe(
+      "The merchant where you did not present (e.g., 'starbucks.com')"
+    ),
+    reason: z
+      .enum(["abandoned", "merchant_didnt_ask", "other"])
+      .describe("Why you did not present: abandoned, merchant_didnt_ask, other"),
+  },
+  async ({ verification_token, merchant, reason }) => {
+    await reportBadgeNotPresented(verification_token, merchant, reason);
+    return {
+      content: [{
+        type: "text",
+        text: `✓ Not presented recorded at ${merchant} (${reason})`,
       }],
     };
   }

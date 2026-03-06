@@ -89,6 +89,14 @@ export function onIdentityPresented(token: string, merchant: string): void {
   t.samplingTimer = setTimeout(() => sampleAgent(token, merchant), SAMPLING_DELAY_MS);
 }
 
+export function reportOutcomeFromAgent(
+  token: string,
+  merchant: string,
+  outcome: "accepted" | "denied" | "inconclusive"
+): void {
+  resolveTrip(token, outcome, "agent_reported");
+}
+
 async function sampleAgent(token: string, merchant: string): Promise<void> {
   const trip = activeTrips.get(token);
   if (!trip || trip.outcome) return; // Already resolved
