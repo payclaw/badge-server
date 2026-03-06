@@ -1,4 +1,5 @@
 import type { AgentIdentityResponse } from "../types.js";
+import { getStoredConsentKey } from "../lib/storage.js";
 
 class PayClawApiError extends Error {
   constructor(
@@ -14,7 +15,7 @@ const REQUEST_TIMEOUT_MS = 30_000;
 
 function getConfig() {
   const baseUrl = process.env.PAYCLAW_API_URL;
-  const apiKey = process.env.PAYCLAW_API_KEY;
+  const apiKey = getStoredConsentKey();
   if (!baseUrl) throw new PayClawApiError("PayClaw API URL is not configured.");
   if (!apiKey) throw new PayClawApiError("PayClaw API key is not configured.");
   if (
@@ -51,8 +52,15 @@ async function request<T>(url: string, init: RequestInit): Promise<T> {
   }
 
   if (res.status === 401) {
+    const authHeader =
+      init.headers instanceof Headers
+        ? init.headers.get("Authorization")
+        : (init.headers as Record<string, string> | undefined)?.Authorization;
+    const isBearer = typeof authHeader === "string" && authHeader.startsWith("Bearer ");
     throw new PayClawApiError(
-      "Authentication failed. Check your API key.",
+      isBearer
+        ? "Authentication failed. Check your access token or OAuth credentials."
+        : "Authentication failed. Check your API key.",
       401
     );
   }
@@ -88,4 +96,34 @@ export async function getAgentIdentity(
 
 export function isApiMode(): boolean {
   return !!process.env.PAYCLAW_API_URL;
+}
+
+/** Base URL for API calls. Defaults to https://payclaw.io. Validates HTTPS for token safety. */
+export function getBaseUrl(): string {
+  const url = process.env.PAYCLAW_API_URL;
+  if (url && url.trim().length > 0) {
+    const trimmed = url.trim().replace(/\/+$/, "");
+    if (trimmed.startsWith("https://") || trimmed.startsWith("http://localhost")) {
+      return trimmed;
+    }
+  }
+  return "https://payclaw.io";
+}
+
+/**
+ * Call agent-identity with a Bearer token (API key or OAuth access token).
+ * Used when consent key comes from device flow (OAuth token) instead of PAYCLAW_API_KEY.
+ */
+export async function getAgentIdentityWithToken(
+  baseUrl: string,
+  token: string,
+  merchant?: string
+): Promise<AgentIdentityResponse> {
+  return request<AgentIdentityResponse>(`${baseUrl}/api/agent-identity`, {
+    method: "POST",
+    headers: authHeaders(token),
+    body: JSON.stringify({
+      ...(merchant ? { merchant } : {}),
+    }),
+  });
 }

@@ -1,6 +1,6 @@
 {
   "name": "@payclaw/badge",
-  "version": "0.7.0",
+  "version": "0.7.1",
   "description": "Prove your agent is an authorized actor, not a bot. MCP-native identity declaration for agent commerce.",
   "bin": "dist/index.js",
   "main": "dist/index.js",
@@ -16,6 +16,7 @@
   "scripts": {
     "build": "tsc && node -e \"const fs=require('fs');const f='dist/index.js';fs.chmodSync(f,0o755)\"",
     "dev": "tsc --watch",
+    "test": "vitest",
     "prepublishOnly": "npm run build"
   },
   "dependencies": {
@@ -24,7 +25,8 @@
   },
   "devDependencies": {
     "@types/node": "^20.0.0",
-    "typescript": "^5.3.0"
+    "typescript": "^5.3.0",
+    "vitest": "^3.0.0"
   },
   "keywords": [
     "payclaw",

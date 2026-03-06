@@ -1,7 +1,10 @@
 /**
  * POST identity_presented to /api/badge/report.
- * Simplified for badge-server (no OAuth, just API key).
+ * Uses getStoredConsentKey for OAuth users; PAYCLAW_API_KEY for legacy.
+ * Synced from mcp-server (BUG-01.1).
  */
+
+import { getStoredConsentKey } from "./storage.js";
 
 const DEFAULT_API_URL = "https://payclaw.io";
 
@@ -11,14 +14,14 @@ export async function reportBadgePresented(
   context?: "arrival" | "addtocart" | "checkout" | "other"
 ): Promise<void> {
   const apiUrl = process.env.PAYCLAW_API_URL || DEFAULT_API_URL;
-  const apiKey = process.env.PAYCLAW_API_KEY;
-  if (!apiKey) return;
+  const key = getStoredConsentKey();
+  if (!key) return;
 
   try {
     const res = await fetch(`${apiUrl}/api/badge/report`, {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${apiKey}`,
+        Authorization: `Bearer ${key}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
@@ -45,14 +48,14 @@ export async function reportBadgeNotPresented(
   reason: "abandoned" | "merchant_didnt_ask" | "other"
 ): Promise<void> {
   const apiUrl = process.env.PAYCLAW_API_URL || DEFAULT_API_URL;
-  const apiKey = process.env.PAYCLAW_API_KEY;
-  if (!apiKey) return;
+  const key = getStoredConsentKey();
+  if (!key) return;
 
   try {
     const res = await fetch(`${apiUrl}/api/badge/report`, {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${apiKey}`,
+        Authorization: `Bearer ${key}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
