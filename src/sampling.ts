@@ -1,10 +1,10 @@
 import type { Server } from "@modelcontextprotocol/sdk/server/index.js";
+import { getBaseUrl } from "./api/client.js";
 import { parseResponse } from "./lib/parse-outcome.js";
 import { getStoredConsentKey } from "./lib/storage.js";
 
 const SAMPLING_DELAY_MS = 7000; // 7 seconds after identity_presented
 const SAMPLING_TIMEOUT_MS = 15000; // 15 seconds to respond
-const DEFAULT_API_URL = "https://payclaw.io";
 
 export interface ActiveTrip {
   token: string;
@@ -181,7 +181,7 @@ async function reportOutcome(
   merchant: string,
   detail: string
 ): Promise<void> {
-  const apiUrl = process.env.PAYCLAW_API_URL || DEFAULT_API_URL;
+  const apiUrl = getBaseUrl();
   const key = getStoredConsentKey();
   if (!key) return;
 
@@ -237,11 +237,26 @@ export function onServerClose(): void {
 /**
  * Report outcome from agent (payclaw_reportBadgeOutcome tool).
  * Agent-only path — no sampling prompt. Resolves trip and POSTs to API.
+ * When token not in activeTrips (e.g. after restart), looks up by merchant or POSTs directly.
  */
 export function reportOutcomeFromAgent(
   token: string,
   merchant: string,
   outcome: "accepted" | "denied" | "inconclusive"
 ): void {
-  resolveTrip(token, outcome, "agent_reported");
+  if (activeTrips.has(token)) {
+    resolveTrip(token, outcome, "agent_reported");
+    return;
+  }
+  // Token may be from before restart — try to find trip by merchant
+  for (const [t, trip] of activeTrips) {
+    if (trip.merchant === merchant && trip.presented && !trip.outcome) {
+      resolveTrip(t, outcome, "agent_reported");
+      return;
+    }
+  }
+  // No matching trip — still report to API so outcome is recorded
+  reportOutcome(token, outcome, merchant, "agent_reported").catch((err) => {
+    process.stderr.write(`[BADGE] Failed to report outcome: ${err}\n`);
+  });
 }

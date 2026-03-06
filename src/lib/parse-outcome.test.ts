@@ -49,4 +49,12 @@ describe("parseResponse", () => {
   it('returns "inconclusive" for "yesterday"', () => {
     expect(parseResponse("yesterday")).toBe("inconclusive");
   });
+
+  it('returns "inconclusive" for "yesterday."', () => {
+    expect(parseResponse("yesterday.")).toBe("inconclusive");
+  });
+
+  it('returns "inconclusive" for "yesterday!"', () => {
+    expect(parseResponse("yesterday!")).toBe("inconclusive");
+  });
 });

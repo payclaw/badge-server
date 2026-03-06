@@ -51,8 +51,15 @@ async function request<T>(url: string, init: RequestInit): Promise<T> {
   }
 
   if (res.status === 401) {
+    const authHeader =
+      init.headers instanceof Headers
+        ? init.headers.get("Authorization")
+        : (init.headers as Record<string, string> | undefined)?.Authorization;
+    const isBearer = typeof authHeader === "string" && authHeader.startsWith("Bearer ");
     throw new PayClawApiError(
-      "Authentication failed. Check your API key.",
+      isBearer
+        ? "Authentication failed. Check your access token or OAuth credentials."
+        : "Authentication failed. Check your API key.",
       401
     );
   }
@@ -90,11 +97,14 @@ export function isApiMode(): boolean {
   return !!process.env.PAYCLAW_API_URL;
 }
 
-/** Base URL for API calls. Defaults to https://payclaw.io. */
+/** Base URL for API calls. Defaults to https://payclaw.io. Validates HTTPS for token safety. */
 export function getBaseUrl(): string {
   const url = process.env.PAYCLAW_API_URL;
   if (url && url.trim().length > 0) {
-    return url.trim().replace(/\/+$/, "");
+    const trimmed = url.trim().replace(/\/+$/, "");
+    if (trimmed.startsWith("https://") || trimmed.startsWith("http://localhost")) {
+      return trimmed;
+    }
   }
   return "https://payclaw.io";
 }

@@ -28,8 +28,9 @@ export function parseResponse(
   if (lower.includes("not denied") || lower.includes("wasn't denied"))
     return "accepted";
 
-  // "yesterday" contains "yes" — exclude false positives
-  if (lower === "yesterday") return "inconclusive";
+  // "yesterday" contains "yes" — exclude false positives (including punctuated variants)
+  const normalized = lower.replace(/[.,!?]+$/, "");
+  if (normalized === "yesterday") return "inconclusive";
 
   // Denial signals first — "no, I was blocked" must be denied (before any "no" check)
   if (FAILURE_SIGNALS.some((s) => lower.includes(s))) return "denied";

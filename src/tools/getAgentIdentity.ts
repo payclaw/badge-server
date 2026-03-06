@@ -18,16 +18,17 @@ function getDisclosureFromToken(token: string, scope = "BROWSE"): string {
 function identityFromOAuthToken(
   token: string,
   _assuranceLevel?: string,
-  merchant?: string
+  merchant?: string,
+  assumeVerified = true
 ): IdentityResult {
   return {
     product_name: "PayClaw Badge",
-    status: "active",
+    status: assumeVerified ? "active" : "pending",
     agent_disclosure: getDisclosureFromToken(token),
     verification_token: token,
     trust_url: "https://payclaw.io/trust",
     contact: "agent_identity@payclaw.io",
-    principal_verified: true,
+    principal_verified: assumeVerified,
     mfa_confirmed: false,
     spend_available: false,
     spend_cta: "Fund your wallet at payclaw.io to enable agent payments.",
@@ -53,6 +54,8 @@ export interface IdentityResult {
   activation_required?: boolean;
 }
 
+let pendingActivation: Promise<IdentityResult> | null = null;
+
 /**
  * Get agent identity token — Badge by PayClaw.
  * When no consent key exists: initiates device flow, returns activation instructions,
@@ -66,9 +69,17 @@ export async function getAgentIdentity(merchant?: string): Promise<IdentityResul
     return callWithKey(consentKey, merchant);
   }
 
-  // No key: initiate device flow
+  // No key: initiate device flow (reuse pending to avoid duplicate pollers)
   if (!consentKey) {
-    return startActivationFlow(merchant);
+    if (pendingActivation) return pendingActivation;
+    const p = startActivationFlow(merchant);
+    pendingActivation = p;
+    try {
+      const result = await p;
+      return result;
+    } finally {
+      pendingActivation = null;
+    }
   }
 
   // Key from file/memory (OAuth token from device flow)
@@ -126,8 +137,8 @@ async function callWithOAuthToken(token: string, merchant?: string): Promise<Ide
       ...result,
     };
   } catch {
-    // API may not accept OAuth tokens yet — build identity locally
-    return identityFromOAuthToken(token, undefined, merchant);
+    // API call failed — do not mark as verified when falling back to local identity
+    return identityFromOAuthToken(token, undefined, merchant, false);
   }
 }
 
