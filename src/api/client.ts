@@ -1,3 +1,4 @@
+// Canonical: mcp-server | Synced: 0.7.3 | Structurally divergent — badge-only subset of mcp-server's client
 import type { AgentIdentityResponse } from "../types.js";
 import { getStoredConsentKey } from "../lib/storage.js";
 
