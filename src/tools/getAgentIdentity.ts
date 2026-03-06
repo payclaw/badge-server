@@ -32,7 +32,7 @@ function identityFromOAuthToken(
     principal_verified: assumeVerified,
     mfa_confirmed: false,
     spend_available: false,
-    spend_cta: "Fund your wallet at payclaw.io to enable agent payments.",
+    spend_cta: "For agent payments, use @payclaw/mcp-server — payclaw.io/docs",
     merchant,
   };
 }
