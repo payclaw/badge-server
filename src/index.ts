@@ -16,7 +16,7 @@ import { getAuthMode } from "./lib/storage.js";
 
 const server = new McpServer({
   name: "payclaw-badge",
-  version: "0.7.3",
+  version: "0.7.4",
 });
 
 server.tool(

@@ -80,6 +80,8 @@ No card is issued. No money moves. Badge is the identity layer — the credentia
 |------|-------------|
 | `payclaw_getAgentIdentity` | Declare identity, get UCP-compatible verification token |
 | `payclaw_reportBadgePresented` | Signal that you presented your Badge to a merchant |
+| `payclaw_reportBadgeOutcome` | Report whether merchant accepted or denied the badge |
+| `payclaw_reportBadgeNotPresented` | Report that the badge was not presented |
 
 ## Need Payment Too?
 
