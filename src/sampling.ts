@@ -1,4 +1,4 @@
-// Canonical: mcp-server | Synced: 0.7.3 | Do not edit in badge-server
+// Canonical: mcp-server | Synced: 0.7.6 | Do not edit in badge-server
 import type { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { getBaseUrl } from "./api/client.js";
 import { parseResponse } from "./lib/parse-outcome.js";
