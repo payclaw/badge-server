@@ -4,4 +4,5 @@ export interface AgentIdentityResponse {
   trust_url: string;
   contact: string;
   principal_verified: boolean;
+  mfa_confirmed?: boolean;
 }
