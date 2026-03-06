@@ -15,7 +15,7 @@ import { reportBadgeNotPresented } from "./lib/report-badge.js";
 
 const server = new McpServer({
   name: "payclaw-badge",
-  version: "0.7.0",
+  version: "0.7.2",
 });
 
 server.tool(

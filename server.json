@@ -6,26 +6,33 @@
     "url": "https://github.com/payclaw/badge-server",
     "source": "github"
   },
-  "version": "0.7.0",
+  "version": "0.7.2",
   "packages": [
     {
       "registryType": "npm",
       "identifier": "@payclaw/badge",
-      "version": "0.7.0",
+      "version": "0.7.2",
       "transport": {
         "type": "stdio"
       },
       "environmentVariables": [
         {
           "name": "PAYCLAW_API_KEY",
-          "description": "Your PayClaw API key (get one at payclaw.io)",
-          "isRequired": true,
+          "description": "Optional. Your PayClaw API key for existing accounts. If omitted, device authorization flow triggers automatically on first use.",
+          "isRequired": false,
           "format": "string",
           "isSecret": true
         },
         {
           "name": "PAYCLAW_API_URL",
           "description": "PayClaw API URL (default: https://payclaw.io)",
+          "isRequired": false,
+          "format": "string",
+          "isSecret": false
+        },
+        {
+          "name": "PAYCLAW_EXTENDED_AUTH",
+          "description": "Set to \"true\" or \"1\" to enable. Asks your agent to confirm merchant accepted or denied. Logged to dashboard so you can see visibility of your token by merchant. Default: false (agent reports via payclaw_reportBadgeOutcome).",
           "isRequired": false,
           "format": "string",
           "isSecret": false

@@ -17,7 +17,7 @@ Add to your MCP client config:
       "command": "npx",
       "args": ["-y", "@payclaw/badge"],
       "env": {
-        "PAYCLAW_API_URL": "https://api.payclaw.io"
+        "PAYCLAW_API_URL": "https://payclaw.io"
       }
     }
   }
