@@ -1,3 +1,4 @@
+// Canonical: mcp-server | Synced: 0.7.3 | Do not edit in badge-server
 import * as api from "../api/client.js";
 import { getStoredConsentKey } from "../lib/storage.js";
 import { initiateDeviceAuth, pollForApproval } from "../lib/device-auth.js";

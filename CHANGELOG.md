@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.7.3] - 2026-03-06 — Tier 3: Code Sync
+
+### Added
+- **F9**: `SYNC.md` documenting canonical file ownership between badge-server and mcp-server
+- **F9**: Canonical ownership header comments on all shared source files
+
+### Fixed
+- **F14**: `setInterval` in `sampling.ts` now guarded by `VITEST` check — prevents timer leaks in tests
+
+### Refs
+- MCPDuro_Mar6 Tier 3
+
 ## [Unreleased] - Tier 2: Auth Flow Fixes
 
 ### Added

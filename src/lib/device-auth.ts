@@ -1,3 +1,4 @@
+// Canonical: badge-server | Synced: 0.7.3 | Do not edit in mcp-server
 import { storeConsentKey } from "./storage.js";
 
 const DEFAULT_API_URL = "https://payclaw.io";

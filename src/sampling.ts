@@ -1,3 +1,4 @@
+// Canonical: mcp-server | Synced: 0.7.3 | Do not edit in badge-server
 import type { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { getBaseUrl } from "./api/client.js";
 import { parseResponse } from "./lib/parse-outcome.js";
@@ -38,7 +39,9 @@ export function initSampling(server: Server): void {
 
   if (!reaperStarted) {
     reaperStarted = true;
-    setInterval(() => reapStaleTrips(), REAPER_INTERVAL_MS);
+    if (process.env.VITEST !== "true") {
+      setInterval(() => reapStaleTrips(), REAPER_INTERVAL_MS);
+    }
   }
 }
 
