@@ -1,4 +1,4 @@
-// Canonical: mcp-server | Synced: 0.7.3 | Do not edit in badge-server
+// Canonical: mcp-server | Synced: 0.7.6 | Do not edit in badge-server
 import type { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { getBaseUrl } from "./api/client.js";
 import { parseResponse } from "./lib/parse-outcome.js";
@@ -215,14 +215,22 @@ async function reportOutcome(
 
 function reapStaleTrips(): void {
   const now = Date.now();
+  let reaped = 0;
   for (const [token, trip] of activeTrips) {
     if (now - trip.startedAt > STALE_TRIP_MS) {
+      const ageMin = Math.round((now - trip.startedAt) / 60000);
       if (trip.presented && !trip.outcome) {
+        process.stderr.write(`[PayClaw] Reaped stale trip: ${token.slice(0, 10)}** (${trip.merchant.slice(0, 64)}, age: ${ageMin}m)\n`);
         resolveTrip(token, "inconclusive", "stale_trip_reaped");
+        reaped++;
       } else {
         activeTrips.delete(token);
+        reaped++;
       }
     }
+  }
+  if (activeTrips.size > 0 || reaped > 0) {
+    process.stderr.write(`[PayClaw] Active trips: ${activeTrips.size} | Reaped: ${reaped}\n`);
   }
 }
 
@@ -235,6 +243,24 @@ export function onServerClose(): void {
     }
   }
   activeTrips.clear();
+}
+
+/** Test-only: reset state between tests. No-op when VITEST not set. */
+export function resetSamplingState(): void {
+  if (process.env.VITEST !== "true") return;
+  for (const trip of activeTrips.values()) {
+    if (trip.samplingTimer) clearTimeout(trip.samplingTimer);
+  }
+  activeTrips.clear();
+  serverRef = null;
+  samplingAvailable = true;
+  reaperStarted = false;
+}
+
+/** Test-only: get trip for assertions. Returns undefined when VITEST not set. */
+export function getActiveTrip(token: string): ActiveTrip | undefined {
+  if (process.env.VITEST !== "true") return undefined;
+  return activeTrips.get(token);
 }
 
 /**
@@ -251,12 +277,19 @@ export function reportOutcomeFromAgent(
     resolveTrip(token, outcome, "agent_reported");
     return;
   }
-  // Token may be from before restart — try to find trip by merchant
+  // Token may be from before restart — try to find a unique trip by merchant
+  let matchToken: string | null = null;
+  let matchCount = 0;
   for (const [t, trip] of activeTrips) {
     if (trip.merchant === merchant && trip.presented && !trip.outcome) {
-      resolveTrip(t, outcome, "agent_reported");
-      return;
+      matchToken = t;
+      matchCount++;
+      if (matchCount > 1) break;
     }
+  }
+  if (matchCount === 1 && matchToken) {
+    resolveTrip(matchToken, outcome, "agent_reported");
+    return;
   }
   // No matching trip — still report to API so outcome is recorded
   reportOutcome(token, outcome, merchant, "agent_reported").catch((err) => {

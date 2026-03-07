@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.7.6] - 2026-03-06 — Tier 6: Stress Test Readiness
+
+### Added
+- **F23**: Multi-merchant trip lifecycle tests — verifies `agent_moved_to_new_merchant` resolution, three-merchant chains, merchant fallback search, direct API POST for orphaned tokens, and `onServerClose` behavior
+- **F23**: `resetSamplingState` and `getActiveTrip` test helpers exported from `sampling.ts`
+- **F24**: Operational logging in `reapStaleTrips()` — logs active trip count and per-trip reap events with truncated token and merchant
+
+### Refs
+- MCPDuro_Mar6 Tier 6
+
 ## [0.7.5] - 2026-03-06 — Tier 5: Dependency Alignment
 
 ### Changed
