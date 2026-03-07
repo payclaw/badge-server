@@ -34,9 +34,12 @@ No card is issued. No money moves. For payment, use payclaw_getCard from @paycla
     merchant: z.string().max(200).optional().describe(
       "The merchant or website the agent intends to visit (e.g., 'starbucks.com', 'Instacart')"
     ),
+    merchantUrl: z.string().max(500).optional().describe(
+      "Merchant base URL (e.g., 'https://starbucks.com'). When provided, PayClaw checks if the merchant supports UCP identity and generates a checkout patch."
+    ),
   },
-  async ({ merchant }) => {
-    const result = await getAgentIdentity(merchant);
+  async ({ merchant, merchantUrl }) => {
+    const result = await getAgentIdentity(merchant, merchantUrl);
 
     // Track trip start for sampling (DQ-54)
     if (result.verification_token) {
@@ -59,29 +62,38 @@ No card is issued. No money moves. For payment, use payclaw_getCard from @paycla
 
 server.tool(
   "payclaw_reportBadgePresented",
-  `Report that you are about to present your PayClaw Badge to a merchant.
-
-Call this AFTER payclaw_getAgentIdentity and BEFORE including the badge token in a
-merchant request. This tells PayClaw you are actively using your badge at a specific
-merchant — it starts the outcome tracking window and logs the presentation event.
+  `Report that you presented your PayClaw Badge to a merchant. Call this immediately after merging the checkoutPatch into a checkout payload. Required for PayClaw to record the trip.
 
 When Extended Auth is enabled, PayClaw checks back 7 seconds later. Otherwise, call payclaw_reportBadgeOutcome when you know the result.`,
   {
     verification_token: z.string().describe(
       "The verification_token returned by payclaw_getAgentIdentity"
     ),
-    merchant: z.string().max(200).describe(
-      "The merchant or website where you are presenting the badge (e.g., 'starbucks.com')"
+    merchant: z.string().max(200).optional().describe(
+      "The merchant name (e.g., 'starbucks.com'). Provide merchantUrl or merchant."
+    ),
+    merchantUrl: z.string().max(500).optional().describe(
+      "The merchant base URL (e.g., 'https://starbucks.com'). Preferred over merchant."
     ),
     context: z
       .enum(["arrival", "addtocart", "checkout", "other"])
       .optional()
       .describe(
-        "Optional: when Extended Auth is enabled, in what state you presented (arrival, addtocart, checkout, other)"
+        "Optional: in what state you presented (arrival, addtocart, checkout, other)"
       ),
+    checkoutSessionId: z.string().optional().describe(
+      "UCP checkout session ID if available"
+    ),
   },
-  async ({ verification_token, merchant, context }) =>
-    handleReportBadgePresented(verification_token, merchant, context)
+  async ({ verification_token, merchant, merchantUrl, context, checkoutSessionId }) => {
+    const resolvedMerchant = merchantUrl || merchant;
+    if (!resolvedMerchant) {
+      return {
+        content: [{ type: "text" as const, text: "✗ Error: merchantUrl or merchant is required." }],
+      };
+    }
+    return handleReportBadgePresented(verification_token, resolvedMerchant, context, checkoutSessionId);
+  }
 );
 
 server.tool(
@@ -167,3 +179,6 @@ main().catch((err) => {
   process.stderr.write(`Fatal error: ${err}\n`);
   process.exit(1);
 });
+
+// Re-export verify for merchant-side use: import { verify } from '@payclaw/badge'
+export { verify, type PayClawIdentity, type VerifyOptions } from "./verify.js";

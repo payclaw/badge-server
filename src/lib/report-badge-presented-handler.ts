@@ -7,15 +7,26 @@
 import { onIdentityPresented } from "../sampling.js";
 import { reportBadgePresented } from "./report-badge.js";
 
+/**
+ * Idempotency (duplicate row prevention) and expired-token status
+ * (`status: 'expired_presentation'`) are enforced by the API server,
+ * not here. The MCP server is stateless — it has no DB access and
+ * cannot check trip_id uniqueness or decode token expiry authoritatively.
+ */
 export async function handleReportBadgePresented(
   verification_token: string,
   merchant: string,
-  context?: "arrival" | "addtocart" | "checkout" | "other"
+  context?: "arrival" | "addtocart" | "checkout" | "other",
+  checkoutSessionId?: string
 ): Promise<{ content: Array<{ type: "text"; text: string }> }> {
   onIdentityPresented(verification_token, merchant);
-  await reportBadgePresented(verification_token, merchant, context);
+  await reportBadgePresented(verification_token, merchant, context, checkoutSessionId);
   return {
     content: [
+      {
+        type: "text",
+        text: JSON.stringify({ recorded: true }),
+      },
       {
         type: "text",
         text: [
