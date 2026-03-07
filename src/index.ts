@@ -167,3 +167,6 @@ main().catch((err) => {
   process.stderr.write(`Fatal error: ${err}\n`);
   process.exit(1);
 });
+
+// Re-export verify for merchant-side use: import { verify } from '@payclaw/badge'
+export { verify, type PayClawIdentity, type VerifyOptions } from "./verify.js";

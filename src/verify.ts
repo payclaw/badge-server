@@ -86,8 +86,17 @@ async function importJWK(jwk: Record<string, unknown>): Promise<CryptoKey | null
 async function fetchJWKS(uri: string): Promise<Map<string, CryptoKey>> {
   const keys = new Map<string, CryptoKey>();
 
-  const res = await fetch(uri, { signal: AbortSignal.timeout(5000) });
-  if (!res.ok) return keys;
+  let res: Response;
+  try {
+    res = await fetch(uri, { signal: AbortSignal.timeout(5000) });
+  } catch (e) {
+    console.warn("[PayClaw verify] JWKS fetch failed:", e);
+    return keys;
+  }
+  if (!res.ok) {
+    console.warn(`[PayClaw verify] JWKS fetch returned ${res.status}`);
+    return keys;
+  }
 
   const data = await res.json() as Record<string, unknown>;
 
@@ -142,7 +151,7 @@ export async function verify(
     // Extract kid
     const kid = header.kid;
     if (typeof kid !== "string") {
-      process.stderr?.write?.("[PayClaw verify] Token has no kid in header\n");
+      console.warn("[PayClaw verify] Token has no kid in header");
       return null;
     }
 
