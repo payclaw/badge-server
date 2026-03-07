@@ -64,6 +64,8 @@ The agent presents this disclosure to merchants. Merchants see a verified identi
 
 ## How It Works
 
+### First use (device auth)
+
 ```
 1. Your agent calls payclaw_getAgentIdentity
 2. No key? Device auth flow triggers — code + URL appear in terminal
@@ -72,7 +74,31 @@ The agent presents this disclosure to merchants. Merchants see a verified identi
 5. Every subsequent call uses the stored key automatically
 ```
 
-No card is issued. No money moves. Badge is the identity layer — the credential that lets authorized agents through while bot defenses stay intact.
+### UCP-aware identity (with merchantUrl)
+
+```
+1. Agent calls payclaw_getAgentIdentity({ merchantUrl: 'https://store.com' })
+2. PayClaw fetches store.com/.well-known/ucp manifest
+3. If merchant declares io.payclaw.common.identity → returns checkoutPatch
+4. Agent merges checkoutPatch into checkout payload
+5. Agent calls payclaw_reportBadgePresented({ merchantUrl, verification_token })
+6. Merchant calls verify(token) → gets PayClawIdentity
+```
+
+If the merchant doesn't support UCP, a valid token is still returned — nothing breaks. No card is issued. No money moves. Badge is the identity layer — the credential that lets authorized agents through while bot defenses stay intact.
+
+### Extended Auth (optional)
+
+When enabled, PayClaw checks back with your agent 7 seconds after badge presentation to confirm whether the merchant accepted or denied. Results are logged to your dashboard.
+
+```json
+"env": {
+  "PAYCLAW_API_URL": "https://payclaw.io",
+  "PAYCLAW_EXTENDED_AUTH": "true"
+}
+```
+
+Without it, your agent reports outcomes via `payclaw_reportBadgeOutcome` when it knows the result.
 
 ## Tools
 
@@ -82,6 +108,44 @@ No card is issued. No money moves. Badge is the identity layer — the credentia
 | `payclaw_reportBadgePresented` | Signal that you presented your Badge to a merchant |
 | `payclaw_reportBadgeOutcome` | Report whether merchant accepted or denied the badge |
 | `payclaw_reportBadgeNotPresented` | Report that the badge was not presented |
+
+## For Merchants: Verify a Badge
+
+Badge is the package merchants install for local JWT verification — no API call to PayClaw, no uptime dependency.
+
+```bash
+npm install @payclaw/badge
+```
+
+```typescript
+import { verify } from '@payclaw/badge/verify'
+
+const identity = await verify(req.body['io.payclaw.common.identity']?.token)
+
+if (identity) {
+  // Verified — identity.userId, identity.agentId, identity.scopes, etc.
+  // Apply tier pricing, skip CAPTCHAs, fast-track checkout
+}
+// null = no badge or invalid — proceed as guest
+```
+
+`verify()` fetches PayClaw's JWKS once, caches for 1 hour, and verifies the ES256 signature locally via Web Crypto API. Zero runtime dependencies. Works in Node.js 18+ and Cloudflare Workers. Never throws — returns `null` on any error.
+
+Full verification docs + Python example: [github.com/payclaw/ucp-agent-badge](https://github.com/payclaw/ucp-agent-badge#merchant-verification)
+
+---
+
+## What's New (v0.8.0)
+
+| Capability | Description |
+|---|---|
+| `verify()` export | Merchant-side JWT verification — `import { verify } from '@payclaw/badge/verify'`. Zero dependencies, Web Crypto only. |
+| UCP-aware `getAgentIdentity` | Pass `merchantUrl` — fetches merchant manifest, returns `checkoutPatch` when `io.payclaw.common.identity` is declared |
+| `reportBadgePresented` with `merchantUrl` | Preferred over `merchant`; includes optional `checkoutSessionId` for UCP session tracking |
+| SSRF-protected manifest fetcher | HTTPS-only, private IP blocking, 5-minute domain cache |
+| Trip lifecycle hardening | `onServerClose` resolves as `inconclusive`; orphan token recovery on restart |
+
+---
 
 ## Need Payment Too?
 
