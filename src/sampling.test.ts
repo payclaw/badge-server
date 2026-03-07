@@ -154,13 +154,31 @@ describe("sampling — multi-merchant trip lifecycle", () => {
   it("onServerClose resolves all presented trips as inconclusive", () => {
     onTripStarted("tok_a", "amazon.com");
     onIdentityPresented("tok_a", "amazon.com");
-    onTripStarted("tok_b", "target.com");
-    onIdentityPresented("tok_b", "target.com");
+    onTripStarted("tok_b", "amazon.com"); // Same merchant — no auto-resolve
+    onIdentityPresented("tok_b", "amazon.com");
 
     onServerClose();
 
     expect(getActiveTrip("tok_a")).toBeUndefined();
     expect(getActiveTrip("tok_b")).toBeUndefined();
+  });
+
+  it("reportOutcomeFromAgent with ambiguous merchant match falls through to API POST", () => {
+    mockFetch.mockClear();
+    // Two trips at same merchant, both presented
+    onTripStarted("tok_a", "amazon.com");
+    onIdentityPresented("tok_a", "amazon.com");
+    onTripStarted("tok_b", "amazon.com");
+    onIdentityPresented("tok_b", "amazon.com");
+
+    mockFetch.mockClear();
+    reportOutcomeFromAgent("unknown_tok", "amazon.com", "accepted");
+
+    // Should NOT resolve either trip (ambiguous) — falls through to direct POST
+    expect(getActiveTrip("tok_a")).toBeDefined();
+    expect(getActiveTrip("tok_b")).toBeDefined();
+    expect(mockFetch).toHaveBeenCalledTimes(1);
+    expect(String(mockFetch.mock.calls[0][0])).toContain("/api/badge/report");
   });
 
   it("API report includes correct event_type for outcome", () => {

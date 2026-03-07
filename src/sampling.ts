@@ -220,7 +220,7 @@ function reapStaleTrips(): void {
     if (now - trip.startedAt > STALE_TRIP_MS) {
       const ageMin = Math.round((now - trip.startedAt) / 60000);
       if (trip.presented && !trip.outcome) {
-        process.stderr.write(`[PayClaw] Reaped stale trip: ${token.slice(0, 10)}** (${trip.merchant}, age: ${ageMin}m)\n`);
+        process.stderr.write(`[PayClaw] Reaped stale trip: ${token.slice(0, 10)}** (${trip.merchant.slice(0, 64)}, age: ${ageMin}m)\n`);
         resolveTrip(token, "inconclusive", "stale_trip_reaped");
         reaped++;
       } else {
@@ -277,12 +277,19 @@ export function reportOutcomeFromAgent(
     resolveTrip(token, outcome, "agent_reported");
     return;
   }
-  // Token may be from before restart — try to find trip by merchant
+  // Token may be from before restart — try to find a unique trip by merchant
+  let matchToken: string | null = null;
+  let matchCount = 0;
   for (const [t, trip] of activeTrips) {
     if (trip.merchant === merchant && trip.presented && !trip.outcome) {
-      resolveTrip(t, outcome, "agent_reported");
-      return;
+      matchToken = t;
+      matchCount++;
+      if (matchCount > 1) break;
     }
+  }
+  if (matchCount === 1 && matchToken) {
+    resolveTrip(matchToken, outcome, "agent_reported");
+    return;
   }
   // No matching trip — still report to API so outcome is recorded
   reportOutcome(token, outcome, merchant, "agent_reported").catch((err) => {
