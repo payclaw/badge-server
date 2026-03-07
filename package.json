@@ -4,6 +4,10 @@
   "description": "Prove your agent is an authorized actor, not a bot. MCP-native identity declaration for agent commerce.",
   "bin": "dist/index.js",
   "main": "dist/index.js",
+  "exports": {
+    ".": "./dist/index.js",
+    "./verify": "./dist/verify.js"
+  },
   "type": "module",
   "engines": {
     "node": ">=20.0.0"
