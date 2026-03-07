@@ -169,7 +169,6 @@ describe("verify()", () => {
     // Wait for cache to expire
     await new Promise((r) => setTimeout(r, 10));
 
-    _resetCache(); // Simulate expiry
     await verify(token, { jwksUri: "https://test.local/.well-known/ucp", cacheTtlMs: 1 });
 
     expect(fetchMock).toHaveBeenCalledTimes(2);

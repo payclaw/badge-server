@@ -98,7 +98,13 @@ async function fetchJWKS(uri: string): Promise<Map<string, CryptoKey>> {
     return keys;
   }
 
-  const data = await res.json() as Record<string, unknown>;
+  let data: Record<string, unknown>;
+  try {
+    data = await res.json() as Record<string, unknown>;
+  } catch {
+    console.warn("[PayClaw verify] JWKS response is not valid JSON");
+    return keys;
+  }
 
   // Extract signing_keys[] from UCP profile or keys[] from standard JWKS
   const rawKeys = (
