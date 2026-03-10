@@ -70,6 +70,8 @@ if (identity) {
 - [payclaw.io/merchants](https://payclaw.io/merchants) — Merchant documentation
 - [UCP extension spec](https://github.com/payclaw/ucp-agent-badge) — Manifest, schema, integration walkthrough
 
+> **Not on UCP yet?** See [Google's UCP Getting Started Guide](https://developers.google.com/merchant/ucp) to set up your merchant manifest, then come back here to add verification.
+
 ---
 
 ## For Agent Developers
