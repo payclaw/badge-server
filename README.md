@@ -8,76 +8,6 @@ One MCP tool call. Your agent declares itself. Merchants let it through.
 
 ---
 
-## For Merchants
-
-Verify PayClaw agent badges at checkout. No API call, no PayClaw account, no integration fee.
-
-### Install
-
-```bash
-npm install @payclaw/badge
-```
-
-### Verify a badge
-
-```typescript
-import { verify } from '@payclaw/badge/verify'
-
-// Token arrives in the checkout payload under the PayClaw extension key
-const token = req.body['io.payclaw.common.identity']?.token
-const identity = await verify(token)
-
-if (identity) {
-  // Authorized agent — verified human principal behind this session
-  console.log(identity.userId)    // Human principal
-  console.log(identity.agentId)   // Agent identifier
-  console.log(identity.intent)    // Declared purchase intent
-  console.log(identity.scopes)    // Authorization scopes
-  // → Skip CAPTCHA, apply tier pricing, fast-track checkout
-}
-// null → no badge or invalid. Proceed as guest.
-```
-
-### What `verify()` does
-
-- Decodes the JWT locally (no network call to PayClaw)
-- Fetches signing keys once, caches for 1 hour
-- Verifies ES256 signature via Web Crypto API
-- Checks expiry with 30s clock tolerance
-- Returns `PayClawIdentity` or `null`. Never throws.
-
-### Return type: `PayClawIdentity`
-
-| Field | Type | Description |
-|-------|------|-------------|
-| `userId` | `string` | Human principal who authorized the agent |
-| `agentId` | `string` | Agent identifier |
-| `intent` | `string` | Declared purchase intent |
-| `scopes` | `string[]` | Authorization scopes |
-| `merchantDomain` | `string?` | Target merchant domain |
-| `issuedAt` | `number` | Token issued (Unix timestamp) |
-| `expiresAt` | `number` | Token expires (Unix timestamp) |
-| `kid` | `string` | Signing key ID |
-
-### Runtime compatibility
-
-- Node.js 18+
-- Cloudflare Workers
-- Any runtime with Web Crypto API
-
-### Full integration guide
-
-- [payclaw.io/merchants](https://payclaw.io/merchants) — Merchant documentation
-- [UCP extension spec](https://github.com/payclaw/ucp-agent-badge) — Manifest, schema, integration walkthrough
-
-> **Not on UCP yet?** See [Google's UCP Getting Started Guide](https://developers.google.com/merchant/ucp) to set up your merchant manifest, then come back here to add verification.
-
----
-
-## For Agent Developers
-
-> Everything below is for developers building agents that use PayClaw.
-
 ## Quick Start
 
 Add to your MCP client config:
@@ -116,6 +46,7 @@ Badge is a [UCP (Universal Commerce Protocol)](https://ucp.dev) Credential Provi
 When your agent encounters a UCP merchant with PayClaw installed, it presents a cryptographic badge automatically — no extra steps.
 
 - Extension spec + schema: [github.com/payclaw/ucp-agent-badge](https://github.com/payclaw/ucp-agent-badge)
+- Merchant verification: [github.com/payclaw/ucp-agent-badge/reference](https://github.com/payclaw/ucp-agent-badge/tree/main/reference)
 - Merchant documentation: [payclaw.io/merchants](https://payclaw.io/merchants)
 
 ## Why Your Agent Needs This
@@ -159,7 +90,7 @@ The agent presents this disclosure to merchants. Merchants see a verified identi
 3. If merchant declares io.payclaw.common.identity → returns checkoutPatch
 4. Agent merges checkoutPatch into checkout payload
 5. Agent calls payclaw_reportBadgePresented({ merchantUrl, verification_token })
-6. Merchant calls verify(token) → gets PayClawIdentity
+6. Merchant verifies token locally (see UCP extension spec for verification)
 ```
 
 If the merchant doesn't support UCP, a valid token is still returned — nothing breaks. No card is issued. No money moves. Badge is the identity layer — the credential that lets authorized agents through while bot defenses stay intact.
@@ -186,11 +117,11 @@ Without it, your agent reports outcomes via `payclaw_reportBadgeOutcome` when it
 | `payclaw_reportBadgeOutcome` | Report whether merchant accepted or denied the badge |
 | `payclaw_reportBadgeNotPresented` | Report that the badge was not presented |
 
-## What's New (v0.8.0)
+## What's New (v0.9.0)
 
 | Capability | Description |
 |---|---|
-| `verify()` export | Merchant-side JWT verification — `import { verify } from '@payclaw/badge/verify'`. Zero dependencies, Web Crypto only. |
+| Verify migration | Merchant-side JWT verification has moved to the [UCP extension spec](https://github.com/payclaw/ucp-agent-badge/tree/main/reference) as a reference implementation. It is no longer exported from this package. |
 | UCP-aware `getAgentIdentity` | Pass `merchantUrl` — fetches merchant manifest, returns `checkoutPatch` when `io.payclaw.common.identity` is declared |
 | `reportBadgePresented` with `merchantUrl` | Preferred over `merchant`; includes optional `checkoutSessionId` for UCP session tracking |
 | SSRF-protected manifest fetcher | HTTPS-only, private IP blocking, 5-minute domain cache |

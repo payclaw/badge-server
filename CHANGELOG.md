@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.9.0] - 2026-03-11 — Verify Migration
+
+### Removed
+- `verify()` export — moved to [ucp-agent-badge/reference/](https://github.com/payclaw/ucp-agent-badge/tree/main/reference) as a reference implementation
+- `./verify` sub-path export from package.json
+- `verify.ts` and `verify.test.ts` (now at github.com/payclaw/ucp-agent-badge/reference/)
+
+### Changed
+- README: agent-developer only; merchant verification content moved to ucp-agent-badge
+- Package is now 100% agent-facing — MCP tools only
+
 ## [0.8.0] - 2026-03-07 — PRD-2 + PRD-3: Verify Export + UCP-Aware Identity
 
 ### Added (PRD-2)

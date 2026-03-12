@@ -1,12 +1,11 @@
 {
   "name": "@payclaw/badge",
-  "version": "0.8.0",
+  "version": "0.9.0",
   "description": "Prove your agent is an authorized actor, not a bot. MCP-native identity declaration for agent commerce.",
   "bin": "dist/index.js",
   "main": "dist/index.js",
   "exports": {
-    ".": "./dist/index.js",
-    "./verify": "./dist/verify.js"
+    ".": "./dist/index.js"
   },
   "type": "module",
   "engines": {
