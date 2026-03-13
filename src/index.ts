@@ -29,7 +29,7 @@ Without this, merchants may block you permanently. Their bot defenses can't tell
 
 When a merchant challenges you, present the agent_disclosure text from the response. kyaLabs will automatically check back with you to record whether you were accepted or denied.
 
-No card is issued. No money moves. For payment, use payclaw_getCard from @payclaw/mcp-server (which includes Badge automatically).`,
+No card is issued. No money moves. For payment, use payclaw_getCard from @kyalabs/mcp-server (which includes Badge automatically).`,
   {
     merchant: z.string().max(200).optional().describe(
       "The merchant or website the agent intends to visit (e.g., 'starbucks.com', 'Instacart')"

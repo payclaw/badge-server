@@ -1,6 +1,6 @@
 # Code Sync Contract
 
-`@payclaw/badge` and `@payclaw/mcp-server` share ~60% of source code. This document defines canonical ownership to prevent divergence.
+`@kyalabs/badge` and `@kyalabs/mcp-server` share ~60% of source code. This document defines canonical ownership to prevent divergence.
 
 ## Canonical Ownership
 

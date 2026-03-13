@@ -35,7 +35,7 @@ function identityFromOAuthToken(
     principal_verified: assumeVerified,
     mfa_confirmed: false,
     spend_available: false,
-    spend_cta: "For agent payments, use @payclaw/mcp-server — kyalabs.io/docs",
+    spend_cta: "For agent payments, use @kyalabs/mcp-server — kyalabs.io/docs",
     merchant,
   };
 }
@@ -309,7 +309,7 @@ export function formatIdentityResponse(r: IdentityResult): string {
   } else if (r.spend_cta) {
     lines.push(``, `  ℹ️  ${r.spend_cta}`);
   } else {
-    lines.push(``, `  ℹ️  Identity only. For agent payments, use @payclaw/mcp-server — kyalabs.io/docs`);
+    lines.push(``, `  ℹ️  Identity only. For agent payments, use @kyalabs/mcp-server — kyalabs.io/docs`);
   }
 
   return lines.join("\n");

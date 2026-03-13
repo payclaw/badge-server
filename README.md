@@ -17,7 +17,7 @@ Add to your MCP client config:
   "mcpServers": {
     "payclaw-badge": {
       "command": "npx",
-      "args": ["-y", "@payclaw/badge"],
+      "args": ["-y", "@kyalabs/badge"],
       "env": {
         "PAYCLAW_API_KEY": "pk_live_your_key_here",
         "PAYCLAW_API_URL": "https://kyalabs.io"
@@ -131,10 +131,10 @@ Without it, your agent reports outcomes via `payclaw_reportBadgeOutcome` when it
 
 ## Need Payment Too?
 
-Badge is the base layer. For virtual Visa cards, use [@payclaw/mcp-server](https://www.npmjs.com/package/@payclaw/mcp-server) — which includes Badge automatically.
+Badge is the base layer. For virtual Visa cards, use [@kyalabs/mcp-server](https://www.npmjs.com/package/@kyalabs/mcp-server) — which includes Badge automatically.
 
 ```bash
-npx -y @payclaw/mcp-server
+npx -y @kyalabs/mcp-server
 ```
 
 ## KYA — Know Your Agent
@@ -148,7 +148,7 @@ kyaLabs is KYA infrastructure. Every declaration creates a verified record of ag
 ## Links
 
 - **Website:** [kyalabs.io](https://kyalabs.io)
-- **npm:** [@payclaw/badge](https://www.npmjs.com/package/@payclaw/badge)
+- **npm:** [@kyalabs/badge](https://www.npmjs.com/package/@kyalabs/badge)
 - **UCP Extension:** [github.com/kyalabs/ucp-agent-badge](https://github.com/kyalabs/ucp-agent-badge)
 - **ClawHub:** [payclaw-badge](https://clawhub.com/skills/payclaw-badge)
 - **Trust:** [kyalabs.io/trust](https://kyalabs.io/trust)

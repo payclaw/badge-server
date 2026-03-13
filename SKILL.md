@@ -16,7 +16,7 @@ Add to your MCP client config:
   "mcpServers": {
     "payclaw-badge": {
       "command": "npx",
-      "args": ["-y", "@payclaw/badge"],
+      "args": ["-y", "@kyalabs/badge"],
       "env": {
         "PAYCLAW_API_KEY": "your_key_here",
         "PAYCLAW_API_URL": "https://kyalabs.io"
@@ -51,4 +51,4 @@ For payment, use [payclaw-io](https://clawhub.com/skills/payclaw-io) which inclu
 
 - [kyalabs.io](https://kyalabs.io)
 - [Trust & Verification](https://kyalabs.io/trust)
-- [npm: @payclaw/badge](https://www.npmjs.com/package/@payclaw/badge)
+- [npm: @kyalabs/badge](https://www.npmjs.com/package/@kyalabs/badge)
