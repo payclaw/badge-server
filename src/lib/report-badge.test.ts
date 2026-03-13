@@ -88,7 +88,7 @@ describe("reportBadgePresented", () => {
     await reportBadgePresented("tok", "m");
 
     expect(mockFetch).toHaveBeenCalledWith(
-      "https://kyalabs.io/api/badge/report",
+      "https://www.kyalabs.io/api/badge/report",
       expect.any(Object)
     );
   });

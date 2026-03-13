@@ -7,7 +7,7 @@
 
 import { getStoredConsentKey } from "./storage.js";
 
-const DEFAULT_API_URL = "https://kyalabs.io";
+const DEFAULT_API_URL = "https://www.kyalabs.io";
 
 export async function reportBadgePresented(
   verificationToken: string,
