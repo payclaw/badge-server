@@ -15,17 +15,10 @@ class BadgeApiError extends Error {
 const REQUEST_TIMEOUT_MS = 30_000;
 
 function getConfig() {
-  const baseUrl = process.env.PAYCLAW_API_URL;
+  const baseUrl = getBaseUrl();
   const apiKey = getStoredConsentKey();
-  if (!baseUrl) throw new BadgeApiError("kyaLabs API URL is not configured.");
   if (!apiKey) throw new BadgeApiError("kyaLabs API key is not configured.");
-  if (
-    !baseUrl.startsWith("https://") &&
-    !baseUrl.startsWith("http://localhost")
-  ) {
-    throw new BadgeApiError("kyaLabs API URL must use HTTPS.");
-  }
-  return { baseUrl: baseUrl.replace(/\/+$/, ""), apiKey };
+  return { baseUrl, apiKey };
 }
 
 function authHeaders(apiKey: string): Record<string, string> {
@@ -108,7 +101,7 @@ export function getBaseUrl(): string {
       return trimmed;
     }
   }
-  return "https://kyalabs.io";
+  return "https://www.kyalabs.io";
 }
 
 /**

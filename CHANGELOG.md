@@ -3,9 +3,9 @@
 ## [0.9.0] - 2026-03-11 — Verify Migration
 
 ### Removed
-- `verify()` export — moved to [ucp-agent-badge/reference/](https://github.com/kyalabs/ucp-agent-badge/tree/main/reference) as a reference implementation
+- `verify()` export — moved to [ucp-agent-badge/reference/](https://github.com/payclaw/ucp-agent-badge/tree/main/reference) as a reference implementation
 - `./verify` sub-path export from package.json
-- `verify.ts` and `verify.test.ts` (now at github.com/kyalabs/ucp-agent-badge/reference/)
+- `verify.ts` and `verify.test.ts` (now at [ucp-agent-badge/reference/](https://github.com/payclaw/ucp-agent-badge/tree/main/reference))
 
 ### Changed
 - README: agent-developer only; merchant verification content moved to ucp-agent-badge

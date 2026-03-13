@@ -46,7 +46,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/kyalabs/badge-server"
+    "url": "https://github.com/payclaw/badge-server"
   },
   "mcpName": "io.github.payclaw/badge"
 }
