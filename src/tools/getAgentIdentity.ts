@@ -1,7 +1,7 @@
-// Canonical: badge-server | Synced: PRD-3 | mcp-server syncs from here
+// Canonical: badge-server | Synced: 2.0.0 | mcp-server syncs from here
 import * as api from "../api/client.js";
-import { getStoredConsentKey } from "../lib/storage.js";
-import { getEnvApiKey } from "../lib/env.js";
+import { getStoredConsentKey, getOrCreateInstallId } from "../lib/storage.js";
+import { getEnvApiKey, getEnvApiUrl } from "../lib/env.js";
 import { initiateDeviceAuth, pollForApproval } from "../lib/device-auth.js";
 import { fetchUCPManifest, findBadgeCapability, isVersionCompatible } from "../lib/ucp-manifest.js";
 
@@ -65,16 +65,88 @@ export interface IdentityResult {
   checkoutPatch?: Record<string, unknown>;
   /** UCP: warning when version mismatch etc. */
   ucpWarning?: string;
+  /** v2.0: Next action the agent should take */
+  next_step?: string;
 }
 
 let pendingActivation: Promise<IdentityResult> | null = null;
+
+const DEFAULT_API_URL = "https://www.kyalabs.io";
+const BADGE_VERSION = "2.0";
+const AGENT_TYPE = "badge-mcp";
+const NEXT_STEP_TEXT =
+  "When visiting a merchant, report your badge presentation using kya_reportBadgePresented with the merchant domain and your verification token.";
+
+/** [EC-3] Dedup: only fire browse_declared once per merchant per process */
+const browseFiredFor = new Set<string>();
+
+/**
+ * [EC-4] Fire browse_declared event — fire-and-forget, on ALL paths.
+ * [EC-5] Isolated try/catch — failure never affects identity response.
+ */
+async function fireBrowseDeclared(merchant: string | undefined): Promise<void> {
+  const dedup = merchant || "__no_merchant__";
+  if (browseFiredFor.has(dedup)) return;
+  browseFiredFor.add(dedup);
+
+  try {
+    const apiUrl = getEnvApiUrl() || DEFAULT_API_URL;
+    const key = getStoredConsentKey();
+    const installId = getOrCreateInstallId();
+
+    if (key) {
+      await fetch(`${apiUrl}/api/badge/report`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${key}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          install_id: installId,
+          badge_version: BADGE_VERSION,
+          event_type: "browse_declared",
+          merchant: merchant || undefined,
+          agent_type: AGENT_TYPE,
+          timestamp: Date.now(),
+        }),
+      });
+    } else {
+      await fetch(`${apiUrl}/api/badge/report`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          install_id: installId,
+          badge_version: BADGE_VERSION,
+          event_type: "browse_declared",
+          merchant: merchant || undefined,
+          agent_type: AGENT_TYPE,
+          timestamp: Date.now(),
+        }),
+      });
+    }
+  } catch {
+    // [EC-5] Fire-and-forget — identity response must not be affected
+  }
+}
+
+/** Test-only: reset the dedup set between tests. */
+export function _resetBrowseDeclaredCache(): void {
+  if (process.env.VITEST !== "true") return;
+  browseFiredFor.clear();
+}
 
 /**
  * Get agent identity token — Badge by kyaLabs.
  * When no consent key exists: initiates device flow, returns activation instructions,
  * polls in background. On approval, stores key. Next call uses stored key.
+ *
+ * v2.0: Auto-fires browse_declared on first call per merchant.
  */
 export async function getAgentIdentity(merchant?: string, merchantUrl?: string): Promise<IdentityResult> {
+  // [EC-4] Fire browse_declared BEFORE returning, on ALL paths
+  // [EC-5] Isolated — failure does not affect identity response
+  fireBrowseDeclared(merchant).catch(() => {});
+
   const consentKey = getStoredConsentKey();
 
   let result: IdentityResult;
@@ -107,6 +179,9 @@ export async function getAgentIdentity(merchant?: string, merchantUrl?: string):
   ) {
     result = await enrichWithUCP(result, merchantUrl);
   }
+
+  // v2.0: Add next_step guidance
+  result.next_step = NEXT_STEP_TEXT;
 
   return result;
 }
