@@ -7,6 +7,7 @@ import * as storage from "./storage.js";
 
 vi.mock("./storage.js", () => ({
   getStoredConsentKey: vi.fn(),
+  getOrCreateInstallId: vi.fn(() => "inst-aaaa-bbbb-cccc-dddddddddddd"),
 }));
 
 describe("reportBadgePresented", () => {
@@ -24,7 +25,9 @@ describe("reportBadgePresented", () => {
     delete process.env.KYA_API_URL;
   });
 
-  it("POSTs when consent key available", async () => {
+  // --- Authenticated mode (existing behavior + enrichment) ---
+
+  it("POSTs with Authorization header when consent key available", async () => {
     vi.mocked(storage.getStoredConsentKey).mockReturnValue("pk_test_xxx");
 
     await reportBadgePresented("tok123", "merchant.com");
@@ -36,11 +39,6 @@ describe("reportBadgePresented", () => {
         headers: expect.objectContaining({
           Authorization: "Bearer pk_test_xxx",
           "Content-Type": "application/json",
-        }),
-        body: JSON.stringify({
-          verification_token: "tok123",
-          event_type: "identity_presented",
-          merchant: "merchant.com",
         }),
       })
     );
@@ -61,12 +59,13 @@ describe("reportBadgePresented", () => {
     );
   });
 
-  it("skips POST when no key at all", async () => {
-    vi.mocked(storage.getStoredConsentKey).mockReturnValue(null);
+  it("includes install_id in authenticated payload (enriched)", async () => {
+    vi.mocked(storage.getStoredConsentKey).mockReturnValue("pk_test_xxx");
 
-    await reportBadgePresented("tok789", "merchant.com");
+    await reportBadgePresented("tok", "m.com");
 
-    expect(mockFetch).not.toHaveBeenCalled();
+    const body = JSON.parse(mockFetch.mock.calls[0][1].body);
+    expect(body.install_id).toBe("inst-aaaa-bbbb-cccc-dddddddddddd");
   });
 
   it("uses KYA_API_URL when set", async () => {
@@ -93,6 +92,62 @@ describe("reportBadgePresented", () => {
     );
   });
 
+  it("includes presentation_context in body when context provided", async () => {
+    vi.mocked(storage.getStoredConsentKey).mockReturnValue("pk_test_xxx");
+
+    await reportBadgePresented("tok", "m", "checkout");
+
+    const body = JSON.parse(mockFetch.mock.calls[0][1].body);
+    expect(body.presentation_context).toBe("checkout");
+    expect(body.event_type).toBe("identity_presented");
+  });
+
+  // --- Anonymous mode (THE CORE BUG FIX) ---
+
+  it("POSTs anonymous payload when no key — fetch IS called (core bug fix)", async () => {
+    vi.mocked(storage.getStoredConsentKey).mockReturnValue(null);
+
+    await reportBadgePresented("tok789", "merchant.com");
+
+    // THE FIX: fetch MUST be called (not silently returned)
+    expect(mockFetch).toHaveBeenCalledTimes(1);
+  });
+
+  it("anonymous request has NO Authorization header", async () => {
+    vi.mocked(storage.getStoredConsentKey).mockReturnValue(null);
+
+    await reportBadgePresented("tok", "m.com");
+
+    const headers = mockFetch.mock.calls[0][1].headers;
+    expect(headers.Authorization).toBeUndefined();
+    expect(headers["Content-Type"]).toBe("application/json");
+  });
+
+  it("anonymous body contains install_id, badge_version, event_type, merchant, timestamp", async () => {
+    vi.mocked(storage.getStoredConsentKey).mockReturnValue(null);
+
+    await reportBadgePresented("tok", "amazon.com");
+
+    const body = JSON.parse(mockFetch.mock.calls[0][1].body);
+    expect(body.install_id).toBe("inst-aaaa-bbbb-cccc-dddddddddddd");
+    expect(body.badge_version).toBe("2.0");
+    expect(body.event_type).toBe("identity_presented");
+    expect(body.merchant).toBe("amazon.com");
+    expect(typeof body.timestamp).toBe("number");
+    expect(body.agent_type).toBe("badge-mcp");
+  });
+
+  it("anonymous mode includes presentation_context when provided", async () => {
+    vi.mocked(storage.getStoredConsentKey).mockReturnValue(null);
+
+    await reportBadgePresented("tok", "m", "arrival");
+
+    const body = JSON.parse(mockFetch.mock.calls[0][1].body);
+    expect(body.presentation_context).toBe("arrival");
+  });
+
+  // --- Resilience ---
+
   it("does not throw when fetch rejects", async () => {
     vi.mocked(storage.getStoredConsentKey).mockReturnValue("pk_test_xxx");
     mockFetch.mockRejectedValue(new Error("network error"));
@@ -107,14 +162,11 @@ describe("reportBadgePresented", () => {
     await expect(reportBadgePresented("tok", "m")).resolves.toBeUndefined();
   });
 
-  it("includes presentation_context in body when context provided", async () => {
-    vi.mocked(storage.getStoredConsentKey).mockReturnValue("pk_test_xxx");
+  it("anonymous mode does not throw on fetch failure (fire-and-forget preserved)", async () => {
+    vi.mocked(storage.getStoredConsentKey).mockReturnValue(null);
+    mockFetch.mockRejectedValue(new Error("network error"));
 
-    await reportBadgePresented("tok", "m", "checkout");
-
-    const body = JSON.parse(mockFetch.mock.calls[0][1].body);
-    expect(body.presentation_context).toBe("checkout");
-    expect(body.event_type).toBe("identity_presented");
+    await expect(reportBadgePresented("tok", "m")).resolves.toBeUndefined();
   });
 });
 
@@ -124,7 +176,6 @@ describe("reportBadgeNotPresented", () => {
   beforeEach(() => {
     vi.stubGlobal("fetch", mockFetch);
     mockFetch.mockResolvedValue({ ok: true });
-    vi.mocked(storage.getStoredConsentKey).mockReturnValue("pk_test_xxx");
   });
 
   afterEach(() => {
@@ -132,28 +183,77 @@ describe("reportBadgeNotPresented", () => {
     vi.restoreAllMocks();
   });
 
+  // --- Authenticated mode ---
+
   it("POSTs with event_type badge_not_presented and reason", async () => {
+    vi.mocked(storage.getStoredConsentKey).mockReturnValue("pk_test_xxx");
+
     await reportBadgeNotPresented("tok", "merchant.com", "abandoned");
 
     expect(mockFetch).toHaveBeenCalledWith(
       expect.stringContaining("/api/badge/report"),
       expect.objectContaining({
         method: "POST",
-        body: JSON.stringify({
-          verification_token: "tok",
-          event_type: "badge_not_presented",
-          merchant: "merchant.com",
-          reason: "abandoned",
+        headers: expect.objectContaining({
+          Authorization: "Bearer pk_test_xxx",
         }),
       })
     );
+    const body = JSON.parse(mockFetch.mock.calls[0][1].body);
+    expect(body.event_type).toBe("badge_not_presented");
+    expect(body.reason).toBe("abandoned");
   });
 
   it("supports all valid reasons", async () => {
+    vi.mocked(storage.getStoredConsentKey).mockReturnValue("pk_test_xxx");
+
     await reportBadgeNotPresented("t", "m", "merchant_didnt_ask");
     expect(JSON.parse(mockFetch.mock.calls[0][1].body).reason).toBe("merchant_didnt_ask");
 
     await reportBadgeNotPresented("t", "m", "other");
     expect(JSON.parse(mockFetch.mock.calls[1][1].body).reason).toBe("other");
+  });
+
+  it("includes install_id in authenticated payload", async () => {
+    vi.mocked(storage.getStoredConsentKey).mockReturnValue("pk_test_xxx");
+
+    await reportBadgeNotPresented("tok", "m.com", "abandoned");
+
+    const body = JSON.parse(mockFetch.mock.calls[0][1].body);
+    expect(body.install_id).toBe("inst-aaaa-bbbb-cccc-dddddddddddd");
+  });
+
+  // --- Anonymous mode (THE CORE BUG FIX) ---
+
+  it("POSTs anonymous payload with install_id when no key (core bug fix)", async () => {
+    vi.mocked(storage.getStoredConsentKey).mockReturnValue(null);
+
+    await reportBadgeNotPresented("tok", "merchant.com", "abandoned");
+
+    // THE FIX: fetch MUST be called
+    expect(mockFetch).toHaveBeenCalledTimes(1);
+  });
+
+  it("anonymous request has no Authorization header", async () => {
+    vi.mocked(storage.getStoredConsentKey).mockReturnValue(null);
+
+    await reportBadgeNotPresented("tok", "m.com", "other");
+
+    const headers = mockFetch.mock.calls[0][1].headers;
+    expect(headers.Authorization).toBeUndefined();
+  });
+
+  it("anonymous body contains install_id, badge_version, reason, timestamp", async () => {
+    vi.mocked(storage.getStoredConsentKey).mockReturnValue(null);
+
+    await reportBadgeNotPresented("tok", "target.com", "merchant_didnt_ask");
+
+    const body = JSON.parse(mockFetch.mock.calls[0][1].body);
+    expect(body.install_id).toBe("inst-aaaa-bbbb-cccc-dddddddddddd");
+    expect(body.badge_version).toBe("2.0");
+    expect(body.event_type).toBe("badge_not_presented");
+    expect(body.reason).toBe("merchant_didnt_ask");
+    expect(body.merchant).toBe("target.com");
+    expect(typeof body.timestamp).toBe("number");
   });
 });
