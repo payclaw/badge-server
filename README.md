@@ -17,7 +17,7 @@ One MCP tool call. Your agent declares itself. Merchants let it through.
 Add to your MCP client config:
 
 ```bash
-npx -y @kyalabs/badge-server
+npx -y @kyalabs/badge
 ```
 
 OR
