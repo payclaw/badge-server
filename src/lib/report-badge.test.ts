@@ -146,6 +146,35 @@ describe("reportBadgePresented", () => {
     expect(body.presentation_context).toBe("arrival");
   });
 
+  // --- v2.1: trip_id propagation ---
+
+  it("includes trip_id in authenticated payload when provided", async () => {
+    vi.mocked(storage.getStoredConsentKey).mockReturnValue("pk_test_xxx");
+
+    await reportBadgePresented("tok", "m.com", undefined, undefined, "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee");
+
+    const body = JSON.parse(mockFetch.mock.calls[0][1].body);
+    expect(body.trip_id).toBe("aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee");
+  });
+
+  it("includes trip_id in anonymous payload when provided", async () => {
+    vi.mocked(storage.getStoredConsentKey).mockReturnValue(null);
+
+    await reportBadgePresented("tok", "m.com", "arrival", undefined, "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee");
+
+    const body = JSON.parse(mockFetch.mock.calls[0][1].body);
+    expect(body.trip_id).toBe("aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee");
+  });
+
+  it("omits trip_id from payload when not provided", async () => {
+    vi.mocked(storage.getStoredConsentKey).mockReturnValue("pk_test_xxx");
+
+    await reportBadgePresented("tok", "m.com");
+
+    const body = JSON.parse(mockFetch.mock.calls[0][1].body);
+    expect(body.trip_id).toBeUndefined();
+  });
+
   // --- Resilience ---
 
   it("does not throw when fetch rejects", async () => {
@@ -255,5 +284,16 @@ describe("reportBadgeNotPresented", () => {
     expect(body.reason).toBe("merchant_didnt_ask");
     expect(body.merchant).toBe("target.com");
     expect(typeof body.timestamp).toBe("number");
+  });
+
+  // --- v2.1: trip_id ---
+
+  it("includes trip_id in payload when provided", async () => {
+    vi.mocked(storage.getStoredConsentKey).mockReturnValue("pk_test_xxx");
+
+    await reportBadgeNotPresented("tok", "m.com", "abandoned", "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee");
+
+    const body = JSON.parse(mockFetch.mock.calls[0][1].body);
+    expect(body.trip_id).toBe("aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee");
   });
 });

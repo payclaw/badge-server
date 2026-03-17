@@ -83,7 +83,7 @@ describe("getAgentIdentity — browse_declared auto-fire", () => {
     expect(browseCalls[0][1].headers.Authorization).toBeUndefined();
   });
 
-  it("fires browse_declared when consent key exists (enriched)", async () => {
+  it("fires browse_declared via anonymous path even when consent key exists", async () => {
     vi.mocked(storage.getStoredConsentKey).mockReturnValue("pk_test_xxx");
     vi.mocked(api.isApiMode).mockReturnValue(false);
 
@@ -99,8 +99,9 @@ describe("getAgentIdentity — browse_declared auto-fire", () => {
     });
     expect(browseCalls.length).toBeGreaterThanOrEqual(1);
 
-    // Has Authorization header (enriched)
-    expect(browseCalls[0][1].headers.Authorization).toBe("Bearer pk_test_xxx");
+    // No Authorization header — browse_declared always uses anonymous path
+    // because no verification_token exists yet at browse time
+    expect(browseCalls[0][1].headers.Authorization).toBeUndefined();
     const body = JSON.parse(browseCalls[0][1].body);
     expect(body.install_id).toBe("inst-aaaa-bbbb-cccc-dddddddddddd");
   });
@@ -170,6 +171,91 @@ describe("getAgentIdentity — browse_declared auto-fire", () => {
 
     expect(result.product_name).toBe("Badge by kyaLabs");
     expect(result.status).toBeDefined();
+  });
+});
+
+describe("getAgentIdentity — trip_id (v2.1)", () => {
+  const mockFetch = vi.fn();
+
+  beforeEach(() => {
+    vi.stubGlobal("fetch", mockFetch);
+    mockFetch.mockResolvedValue({ ok: true });
+    _resetBrowseDeclaredCache();
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.restoreAllMocks();
+  });
+
+  it("response includes trip_id as a valid UUID", async () => {
+    vi.mocked(storage.getStoredConsentKey).mockReturnValue("pk_test_xxx");
+    vi.mocked(api.isApiMode).mockReturnValue(false);
+
+    const result = await getAgentIdentity("store.com");
+
+    expect(result.trip_id).toBeDefined();
+    expect(result.trip_id).toMatch(
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+    );
+  });
+
+  it("each call generates a unique trip_id", async () => {
+    vi.mocked(storage.getStoredConsentKey).mockReturnValue("pk_test_xxx");
+    vi.mocked(api.isApiMode).mockReturnValue(false);
+
+    const r1 = await getAgentIdentity("store.com");
+    _resetBrowseDeclaredCache();
+    const r2 = await getAgentIdentity("store.com");
+
+    expect(r1.trip_id).not.toBe(r2.trip_id);
+  });
+
+  it("browse_declared payload includes trip_id", async () => {
+    vi.mocked(storage.getStoredConsentKey).mockReturnValue(null);
+    vi.mocked(deviceAuth.initiateDeviceAuth).mockResolvedValue({
+      device_code: "dc",
+      user_code: "UC",
+      verification_uri: "https://kyalabs.io/activate",
+      verification_uri_complete: "https://kyalabs.io/activate?code=UC",
+      interval: 5,
+      expires_in: 300,
+    });
+    vi.mocked(deviceAuth.pollForApproval).mockResolvedValue(undefined as any);
+
+    const result = await getAgentIdentity("amazon.com");
+
+    const browseCalls = mockFetch.mock.calls.filter((c) => {
+      try {
+        return JSON.parse(c[1]?.body || "{}").event_type === "browse_declared";
+      } catch {
+        return false;
+      }
+    });
+    expect(browseCalls.length).toBeGreaterThanOrEqual(1);
+    const body = JSON.parse(browseCalls[0][1].body);
+    expect(body.trip_id).toBe(result.trip_id);
+  });
+
+  it("trip_id present even on activation_required path", async () => {
+    vi.mocked(storage.getStoredConsentKey).mockReturnValue(null);
+    vi.mocked(deviceAuth.initiateDeviceAuth).mockResolvedValue({
+      device_code: "dc",
+      user_code: "UC",
+      verification_uri: "https://kyalabs.io/activate",
+      verification_uri_complete: "https://kyalabs.io/activate?code=UC",
+      interval: 5,
+      expires_in: 300,
+    });
+    vi.mocked(deviceAuth.pollForApproval).mockResolvedValue(undefined as any);
+
+    const result = await getAgentIdentity("store.com");
+
+    expect(result.activation_required).toBe(true);
+    expect(result.trip_id).toBeDefined();
+    expect(result.trip_id).toMatch(
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+    );
   });
 });
 

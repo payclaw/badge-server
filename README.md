@@ -1,6 +1,6 @@
-# Badge by kyaLabs
+# Badge by kya labs
 
-**Your agent isn't a bot. kyaLabs proves it.**
+**Your agent isn't a bot. kya proves it.**
 
 Your AI agent looks like a bot to every merchant on the internet. Badge gives it a way to declare what it is: an authorized actor, shopping on behalf of a real human, with explicit consent.
 
@@ -71,7 +71,7 @@ This is the default mode. It's how Badge works out of the box, for every user, f
 
 ### Verified (when merchant requires it)
 
-When a merchant requires verified identity — their UCP manifest says `required: true` — your agent will ask you to approve a device flow. You visit a merchant-kyaLabs URL, enter the OAuth code from your agent, and prove you're a real person.
+When a merchant requires verified identity — their UCP manifest says `required: true` — your agent will ask you to approve a device flow. You visit a merchant-kya URL, enter the OAuth code from your agent, and prove you're a real person.
 
 Badge issues a tokenized credential: an ES256-signed JWT, signed by kya's private key, verifiable locally by the merchant. Your agent is free to continue - no login, PII or anything needed. 
 
@@ -93,7 +93,7 @@ Full data practices: [kyalabs.io/trust](https://kyalabs.io/trust)
 
 ## The Universal Commerce Protocol
 
-Badge is a [UCP (Universal Commerce Protocol)](https://ucp.dev) Credential Provider. Merchants who declare the kyaLabs identity extension signal to every UCP-compliant agent that authorized agents are preferred at their store.
+Badge is a [UCP (Universal Commerce Protocol)](https://ucp.dev) Credential Provider. Merchants who declare the kya identity extension signal to every UCP-compliant agent that authorized agents are preferred at their store.
 
 When your agent encounters a UCP merchant with Badge installed, it presents a cryptographic badge automatically — no extra steps.
 
@@ -121,7 +121,7 @@ Every tool call works immediately — no auth required. Events fire in both anon
 
 ### Extended Auth (optional)
 
-When enabled, kyaLabs checks back with your agent 7 seconds after each badge presentation to confirm whether the merchant accepted or denied. Results are logged to your dashboard so you can see when and which merchants are rejecting your agent. 
+When enabled, kya checks back with your agent 7 seconds after each badge presentation to confirm whether the merchant accepted or denied. Results are logged to your dashboard so you can see when and which merchants are rejecting your agent. 
 
 ```json
 "env": {
@@ -151,7 +151,7 @@ npx @kyalabs/mcp-server
 
 ## KYA — Know Your Agent
 
-kyaLabs is KYA infrastructure. Every declaration creates a verified record of agentic commerce behavior — building the trust signal that merchants need to tell authorized agents from anonymous bots.
+kya is KYA infrastructure. Every declaration creates a verified record of agentic commerce behavior — building the trust signal that merchants need to tell authorized agents from anonymous bots.
 
 ## Links
 
@@ -165,4 +165,4 @@ kyaLabs is KYA infrastructure. Every declaration creates a verified record of ag
 
 ---
 
-*Agents are not bots. kyaLabs proves it.*
+*Agents are not bots. kya labs proves it.*

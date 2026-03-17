@@ -13,10 +13,11 @@ import {
 import { handleReportBadgePresented } from "./lib/report-badge-presented-handler.js";
 import { reportBadgeNotPresented } from "./lib/report-badge.js";
 import { getAuthMode } from "./lib/storage.js";
+import { initAgentModel } from "./lib/agent-model.js";
 
 const server = new McpServer({
   name: "kyalabs-badge",
-  version: "0.8.0",
+  version: "2.1.0",
 });
 
 server.tool(
@@ -41,9 +42,9 @@ No card is issued. No money moves. For payment, use kya_getCard from @kyalabs/mc
   async ({ merchant, merchantUrl }) => {
     const result = await getAgentIdentity(merchant, merchantUrl);
 
-    // Track trip start for sampling (DQ-54)
+    // Track trip start for sampling (DQ-54) — v2.1: include trip_id
     if (result.verification_token) {
-      onTripStarted(result.verification_token, merchant || "unknown");
+      onTripStarted(result.verification_token, merchant || "unknown", result.trip_id);
     }
 
     const formatted = formatIdentityResponse(result);
@@ -84,15 +85,18 @@ When Extended Auth is enabled, kyaLabs checks back 7 seconds later. Otherwise, c
     checkoutSessionId: z.string().optional().describe(
       "UCP checkout session ID if available"
     ),
+    trip_id: z.string().uuid().optional().describe(
+      "Trip ID from kya_getAgentIdentity — links events in this shopping session"
+    ),
   },
-  async ({ verification_token, merchant, merchantUrl, context, checkoutSessionId }) => {
+  async ({ verification_token, merchant, merchantUrl, context, checkoutSessionId, trip_id }) => {
     const resolvedMerchant = merchantUrl || merchant;
     if (!resolvedMerchant) {
       return {
         content: [{ type: "text" as const, text: "✗ Error: merchantUrl or merchant is required." }],
       };
     }
-    return handleReportBadgePresented(verification_token, resolvedMerchant, context, checkoutSessionId);
+    return handleReportBadgePresented(verification_token, resolvedMerchant, context, checkoutSessionId, trip_id);
   }
 );
 
@@ -113,9 +117,12 @@ Call this after kya_reportBadgePresented when you know whether the merchant acce
       .describe(
         "accepted = merchant let you through; denied = blocked/bot-walled; inconclusive = unknown or timed out"
       ),
+    trip_id: z.string().uuid().optional().describe(
+      "Trip ID from kya_getAgentIdentity — links events in this shopping session"
+    ),
   },
-  async ({ verification_token, merchant, outcome }) => {
-    reportOutcomeFromAgent(verification_token, merchant, outcome);
+  async ({ verification_token, merchant, outcome, trip_id }) => {
+    reportOutcomeFromAgent(verification_token, merchant, outcome, trip_id);
     return {
       content: [{
         type: "text",
@@ -140,9 +147,12 @@ Call this when you have a badge but chose not to present it (e.g., abandoned car
     reason: z
       .enum(["abandoned", "merchant_didnt_ask", "other"])
       .describe("Why you did not present: abandoned, merchant_didnt_ask, other"),
+    trip_id: z.string().uuid().optional().describe(
+      "Trip ID from kya_getAgentIdentity — links events in this shopping session"
+    ),
   },
-  async ({ verification_token, merchant, reason }) => {
-    await reportBadgeNotPresented(verification_token, merchant, reason);
+  async ({ verification_token, merchant, reason, trip_id }) => {
+    await reportBadgeNotPresented(verification_token, merchant, reason, trip_id);
     return {
       content: [{
         type: "text",
@@ -158,6 +168,9 @@ async function main() {
 
   // Initialize sampling after connection (DQ-54)
   initSampling(server.server);
+
+  // v2.1: Detect agent model from MCP client handshake
+  initAgentModel(server.server);
 
   // Handle clean shutdown
   process.on("SIGINT", () => {
