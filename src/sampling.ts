@@ -201,7 +201,8 @@ async function reportOutcome(
   const apiUrl = getEnvApiUrl() || DEFAULT_API_URL;
   const key = getStoredConsentKey();
   const installId = getOrCreateInstallId();
-  const eventType = outcome === "denied" ? "trip_failure" : "trip_success";
+  // S1: sampling_complete replaces trip_success/trip_failure (outcome is debugging, not a metric)
+  const eventType = "sampling_complete";
 
   try {
     if (key) {
@@ -337,7 +338,7 @@ export function getActiveTrip(token: string): ActiveTrip | undefined {
 export function reportOutcomeFromAgent(
   token: string,
   merchant: string,
-  outcome: "accepted" | "denied" | "inconclusive",
+  outcome: "not_denied" | "denied" | "unparseable",
   tripId?: string
 ): void {
   if (activeTrips.has(token)) {

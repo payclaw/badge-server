@@ -113,9 +113,9 @@ Call this after kya_reportBadgePresented when you know whether the merchant acce
       "The merchant where you presented (e.g., 'starbucks.com')"
     ),
     outcome: z
-      .enum(["accepted", "denied", "inconclusive"])
+      .enum(["not_denied", "denied", "unparseable"])
       .describe(
-        "accepted = merchant let you through; denied = blocked/bot-walled; inconclusive = unknown or timed out"
+        "not_denied = merchant did not block you; denied = blocked/bot-walled; unparseable = unknown or timed out"
       ),
     trip_id: z.string().uuid().optional().describe(
       "Trip ID from kya_getAgentIdentity — links events in this shopping session"
