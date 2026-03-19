@@ -10,7 +10,7 @@ import { getEnvApiUrl } from "./env.js";
 import { getAgentModel } from "./agent-model.js";
 
 const DEFAULT_API_URL = "https://www.kyalabs.io";
-const BADGE_VERSION = "2.0";
+const BADGE_VERSION = "2.3";
 const AGENT_TYPE = "badge-mcp";
 
 export async function reportBadgePresented(

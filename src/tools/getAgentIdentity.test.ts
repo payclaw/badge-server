@@ -85,7 +85,7 @@ describe("getAgentIdentity — browse_declared auto-fire", () => {
 
     const body = JSON.parse(browseCalls[0][1].body);
     expect(body.install_id).toBe("inst-aaaa-bbbb-cccc-dddddddddddd");
-    expect(body.badge_version).toBe("2.0");
+    expect(body.badge_version).toBe("2.3");
     expect(body.merchant).toBe("amazon.com");
     expect(body.agent_type).toBe("badge-mcp");
     expect(typeof body.timestamp).toBe("number");

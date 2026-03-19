@@ -17,7 +17,7 @@ import { initAgentModel } from "./lib/agent-model.js";
 
 const server = new McpServer({
   name: "kyalabs-badge",
-  version: "2.1.0",
+  version: "2.3.0",
 });
 
 server.tool(

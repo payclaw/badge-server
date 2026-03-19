@@ -8,7 +8,7 @@ import { getAgentModel } from "./lib/agent-model.js";
 const SAMPLING_DELAY_MS = 7000; // 7 seconds after identity_presented
 const SAMPLING_TIMEOUT_MS = 15000; // 15 seconds to respond
 const DEFAULT_API_URL = "https://www.kyalabs.io";
-const BADGE_VERSION = "2.0";
+const BADGE_VERSION = "2.3";
 const AGENT_TYPE = "mcp-server";
 
 export interface ActiveTrip {
