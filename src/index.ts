@@ -2,7 +2,7 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
-import { getAgentIdentity, formatIdentityResponse } from "./tools/getAgentIdentity.js";
+import { getAgentIdentity, formatIdentityResponse, flushPendingBrowse } from "./tools/getAgentIdentity.js";
 import {
   initSampling,
   onTripStarted,
@@ -172,13 +172,15 @@ async function main() {
   // v2.1: Detect agent model from MCP client handshake
   initAgentModel(server.server);
 
-  // Handle clean shutdown
-  process.on("SIGINT", () => {
+  // Handle clean shutdown — flush pending telemetry before exit
+  process.on("SIGINT", async () => {
     onServerClose();
+    await flushPendingBrowse();
     process.exit(0);
   });
-  process.on("SIGTERM", () => {
+  process.on("SIGTERM", async () => {
     onServerClose();
+    await flushPendingBrowse();
     process.exit(0);
   });
 
