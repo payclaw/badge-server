@@ -1,7 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
 vi.mock("../lib/storage.js", () => ({
-  getStoredConsentKey: vi.fn(),
   getOrCreateInstallId: vi.fn(() => "inst-aaaa-bbbb-cccc-dddddddddddd"),
 }));
 
@@ -13,15 +12,22 @@ vi.mock("../lib/env.js", () => ({
   getEnvApiUrl: vi.fn(() => ""),
 }));
 
-import { webFetch } from "./webFetch.js";
-import { getStoredConsentKey } from "../lib/storage.js";
+vi.mock("../lib/badge-token.js", () => ({
+  getCachedBadgeToken: vi.fn(),
+  enrollAndCacheBadgeToken: vi.fn(),
+}));
 
-const mockGetKey = vi.mocked(getStoredConsentKey);
+import { webFetch } from "./webFetch.js";
+import { getCachedBadgeToken, enrollAndCacheBadgeToken } from "../lib/badge-token.js";
+
+const mockGetCached = vi.mocked(getCachedBadgeToken);
+const mockEnroll = vi.mocked(enrollAndCacheBadgeToken);
 let mockFetch: ReturnType<typeof vi.fn>;
 
 beforeEach(() => {
   process.env.VITEST = "true";
-  mockGetKey.mockReturnValue("pk_test_abc123");
+  mockGetCached.mockReturnValue("kya_test_badge_token");
+  mockEnroll.mockResolvedValue("kya_test_badge_token");
   mockFetch = vi.fn();
   vi.stubGlobal("fetch", mockFetch);
 });
@@ -51,10 +57,20 @@ describe("webFetch", () => {
   // --- Identity checks ---
 
   describe("identity", () => {
-    it("returns NO_IDENTITY when no consent key", async () => {
-      mockGetKey.mockReturnValue(null);
+    it("returns NO_IDENTITY when no badge token cached and enroll fails", async () => {
+      mockGetCached.mockReturnValue(null);
+      mockEnroll.mockResolvedValue(null);
       const result = await webFetch("https://example.com");
       expect(result).toMatchObject({ error: expect.stringContaining("kya_getAgentIdentity"), code: "NO_IDENTITY" });
+    });
+
+    it("enrolls on-the-fly when no cached token for merchant", async () => {
+      mockGetCached.mockReturnValue(null);
+      mockEnroll.mockResolvedValue("kya_enrolled_on_fly");
+      mockFetch.mockResolvedValue(mockResponse("ok"));
+      const result = await webFetch("https://example.com");
+      expect(mockEnroll).toHaveBeenCalledWith("example.com");
+      expect((result as any).status).toBe(200);
     });
   });
 
@@ -157,7 +173,7 @@ describe("webFetch", () => {
         (c: any[]) => c[0] === "https://example.com"
       );
       expect(fetchCall).toBeDefined();
-      expect(fetchCall![1].headers["Kya-Token"]).toBe("pk_test_abc123");
+      expect(fetchCall![1].headers["Kya-Token"]).toBe("kya_test_badge_token");
     });
 
     it("strips set-cookie from response headers", async () => {
@@ -224,7 +240,7 @@ describe("webFetch", () => {
       );
       expect(fetchCall![1].headers["Accept"]).toBe("text/html");
       // Kya-Token still present
-      expect(fetchCall![1].headers["Kya-Token"]).toBe("pk_test_abc123");
+      expect(fetchCall![1].headers["Kya-Token"]).toBe("kya_test_badge_token");
     });
 
     it("does not allow agent to override Kya-Token via headers param", async () => {
@@ -234,7 +250,7 @@ describe("webFetch", () => {
         (c: any[]) => c[0] === "https://example.com"
       );
       // Our token wins, not the agent's
-      expect(fetchCall![1].headers["Kya-Token"]).toBe("pk_test_abc123");
+      expect(fetchCall![1].headers["Kya-Token"]).toBe("kya_test_badge_token");
     });
   });
 
@@ -275,7 +291,8 @@ describe("webFetch", () => {
     });
 
     it("does not fire declare when identity check fails", async () => {
-      mockGetKey.mockReturnValue(null);
+      mockGetCached.mockReturnValue(null);
+      mockEnroll.mockResolvedValue(null);
       await webFetch("https://example.com");
       expect(mockFetch).not.toHaveBeenCalled();
     });

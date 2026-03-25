@@ -9,10 +9,11 @@
  * - Manual redirects (prevents token leak to redirect targets)
  */
 
-import { getStoredConsentKey, getOrCreateInstallId } from "../lib/storage.js";
+import { getOrCreateInstallId } from "../lib/storage.js";
 import { getAgentModel } from "../lib/agent-model.js";
 import { getEnvApiUrl } from "../lib/env.js";
 import { isPublicOrigin } from "../lib/url-safety.js";
+import { enrollAndCacheBadgeToken, getCachedBadgeToken } from "../lib/badge-token.js";
 import { randomUUID } from "node:crypto";
 
 const MAX_BODY_BYTES = 5_242_880; // 5MB
@@ -57,16 +58,7 @@ export async function webFetch(
   method?: string,
   headers?: Record<string, string>,
 ): Promise<WebFetchResult> {
-  // 1. Identity check
-  const token = getStoredConsentKey();
-  if (!token) {
-    return {
-      error: "Call kya_getAgentIdentity first to establish identity",
-      code: "NO_IDENTITY",
-    };
-  }
-
-  // 2. URL validation
+  // 1. URL validation (before identity — need merchant from URL)
   let parsed: URL;
   try {
     parsed = new URL(url);
@@ -86,7 +78,21 @@ export async function webFetch(
     return { error: "Cannot fetch private or internal URLs", code: "BLOCKED_URL" };
   }
 
-  // 5. Method check
+  // 5. Identity check — get badge token for this merchant
+  const merchant = parsed.hostname.replace(/^www\./, "");
+  let token = getCachedBadgeToken(merchant);
+  if (!token) {
+    // Enroll on-the-fly for this merchant
+    token = await enrollAndCacheBadgeToken(merchant);
+  }
+  if (!token) {
+    return {
+      error: "Call kya_getAgentIdentity with a merchant first to establish identity",
+      code: "NO_IDENTITY",
+    };
+  }
+
+  // 6. Method check
   const resolvedMethod = (method ?? "GET").toUpperCase();
   if (!ALLOWED_METHODS.has(resolvedMethod)) {
     return {
@@ -95,7 +101,7 @@ export async function webFetch(
     };
   }
 
-  // 6. Build request headers — our token wins over any agent-provided Kya-Token
+  // 7. Build request headers — our token wins over any agent-provided Kya-Token
   const requestHeaders: Record<string, string> = {
     ...(headers ?? {}),
     "Kya-Token": token,
@@ -146,8 +152,8 @@ export async function webFetch(
     url: response.url || url,
   };
 
-  // 10. Auto-declare (fire-and-forget)
-  fireBrowseDeclared(parsed.hostname.replace(/^www\./, ""));
+  // 11. Auto-declare (fire-and-forget)
+  fireBrowseDeclared(merchant);
 
   return result;
 }
