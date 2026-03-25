@@ -102,8 +102,17 @@ export async function webFetch(
   }
 
   // 7. Build request headers — our token wins over any agent-provided Kya-Token
+  // Filter out case-variant kya-token headers to prevent agents from overriding
+  const sanitizedHeaders: Record<string, string> = {};
+  if (headers) {
+    for (const [k, v] of Object.entries(headers)) {
+      if (k.toLowerCase() !== "kya-token") {
+        sanitizedHeaders[k] = v;
+      }
+    }
+  }
   const requestHeaders: Record<string, string> = {
-    ...(headers ?? {}),
+    ...sanitizedHeaders,
     "Kya-Token": token,
   };
 
