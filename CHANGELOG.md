@@ -1,5 +1,21 @@
 # Changelog
 
+## [2.5.0] - 2026-03-25 — Identity Delivery ("ID in Depth")
+
+### Added
+- `kya_web_fetch` tool — fetch web pages with automatic Kya-Token header injection and shopping journal (auto-declare). HTTPS only, SSRF protection, 5MB body cap, 30s timeout, manual redirects. Replaces the need for agents to use `web_fetch` + manual declare.
+- `kya_getHeaders` tool — returns `{ "Kya-Token": token }` for agents using Playwright (`setExtraHTTPHeaders`) or Chrome extensions (`document.cookie`).
+- `isPublicOrigin()` extracted to `src/lib/url-safety.ts` — shared SSRF check for all outbound fetches. Blocks localhost, RFC1918, link-local, IPv6 private ranges.
+
+### Deprecated
+- `kya_reportBadgeOutcome` — outcomes are now tracked server-side via the verify endpoint. Tool is a no-op; will be removed in v3.0.
+- `kya_reportBadgeNotPresented` — event no longer used in scoring. Tool is a no-op; will be removed in v3.0.
+
+### Notes
+- `kya_web_fetch` auto-fires `browse_declared` events (fire-and-forget, anonymous path). Feeds `agent_merchant_visits` for kyaScore.
+- Method allowlist: GET, HEAD, OPTIONS only. Redirects returned as-is (Location header) — not followed, to prevent Kya-Token leaking to redirect targets.
+- `url-safety.ts` replaces the local `isPublicOrigin` in `ucp-manifest.ts` (import, not copy).
+
 ## [2.3.0] - 2026-03-17 — Merchant Signal Awareness
 
 ### Added
