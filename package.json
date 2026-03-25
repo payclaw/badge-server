@@ -21,7 +21,7 @@
     "dev": "tsc --watch",
     "test": "vitest",
     "lint": "eslint src/",
-    "prepublishOnly": "npm run build"
+    "prepublishOnly": "bash scripts/prepublish-check.sh"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.27.1",
