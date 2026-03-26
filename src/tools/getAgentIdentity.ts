@@ -3,6 +3,7 @@ import crypto from "node:crypto";
 import * as api from "../api/client.js";
 import { getStoredConsentKey, getOrCreateInstallId } from "../lib/storage.js";
 import { getEnvApiKey, getEnvApiUrl } from "../lib/env.js";
+import { enrollAndCacheBadgeToken } from "../lib/badge-token.js";
 import { getAgentModel } from "../lib/agent-model.js";
 import { initiateDeviceAuth, pollForApproval } from "../lib/device-auth.js";
 import { fetchUCPManifest, findBadgeCapability, isVersionCompatible } from "../lib/ucp-manifest.js";
@@ -159,7 +160,7 @@ const DEFAULT_API_URL = "https://www.kyalabs.io";
 const BADGE_VERSION = "2.4";
 const AGENT_TYPE = "badge-mcp";
 const NEXT_STEP_TEXT =
-  "When visiting a merchant, report your badge presentation using kya_reportBadgePresented with the merchant domain and your verification token.";
+  "Your identity is attached automatically via kya_web_fetch. Use kya_web_fetch instead of web_fetch when shopping — it injects your Kya-Token header and records your visit. For browser automation, use kya_getHeaders to get headers for setExtraHTTPHeaders.";
 
 /**
  * v2.1: Dedup by trip_id (one browse_declared per trip, enforced by DB unique index).
@@ -292,8 +293,14 @@ export async function getAgentIdentity(merchant?: string, merchantUrl?: string):
     result.assurance_level = assuranceLevel;
   }
 
-  // v2.3: Fetch merchant signal status and fire signal_context_received when active
+  // v2.5: Enroll at merchant to get kya_* badge token (KYA-98 credential bridge)
   const merchantDomain = extractDomain(merchant || result.merchant || "");
+  if (merchantDomain && consentKey && !result.activation_required) {
+    // Fire-and-forget — don't block identity response on enroll
+    enrollAndCacheBadgeToken(merchantDomain).catch(() => {});
+  }
+
+  // v2.3: Fetch merchant signal status and fire signal_context_received when active
   let signalStatus: SignalStatus | null = null;
   if (merchantDomain && !result.activation_required) {
     const apiUrl = getEnvApiUrl() || DEFAULT_API_URL;

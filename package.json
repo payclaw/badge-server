@@ -1,6 +1,6 @@
 {
   "name": "@kyalabs/badge",
-  "version": "2.4.0",
+  "version": "2.5.0",
   "description": "Prove your agent is an authorized actor, not a bot. MCP-native identity declaration for agent commerce.",
   "bin": "dist/index.js",
   "main": "dist/index.js",
@@ -21,10 +21,10 @@
     "dev": "tsc --watch",
     "test": "vitest",
     "lint": "eslint src/",
-    "prepublishOnly": "npm run build"
+    "prepublishOnly": "bash scripts/prepublish-check.sh"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.27.1",
+    "@modelcontextprotocol/sdk": "^1.28.0",
     "zod": "^3.24.0 || ^4.0.0"
   },
   "devDependencies": {
