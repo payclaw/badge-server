@@ -34,17 +34,13 @@ jobs:
           node-version: '22'
           registry-url: 'https://registry.npmjs.org'
 
-      - name: Install dependencies
-        working-directory: packages/shared
-        run: npm ci
+      - run: npm ci
 
       - name: Build
-        working-directory: packages/shared
-        run: npm run build
+        run: npm run build -w packages/shared
 
       - name: Test
-        working-directory: packages/shared
-        run: npx vitest run
+        run: npm run test -w packages/shared -- run
 
       - name: Verify version matches tag
         working-directory: packages/shared

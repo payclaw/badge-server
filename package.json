@@ -8,6 +8,9 @@
     ".": "./dist/index.js"
   },
   "type": "module",
+  "workspaces": [
+    "packages/shared"
+  ],
   "engines": {
     "node": ">=20.0.0"
   },
