@@ -67,12 +67,13 @@ export async function request<T>(url: string, init: RequestInit): Promise<T> {
   }
 
   if (!res.ok) {
+    const rawBody = await res.text();
     let body: string;
     try {
-      const json = (await res.json()) as { error?: string };
+      const json = JSON.parse(rawBody) as { error?: string };
       body = json.error ?? JSON.stringify(json);
     } catch {
-      body = await res.text();
+      body = rawBody;
     }
     throw new BadgeApiError(body, res.status);
   }
@@ -89,8 +90,12 @@ export function getBaseUrl(): string {
   const url = getEnvApiUrl();
   if (url && url.trim().length > 0) {
     const trimmed = url.trim().replace(/\/+$/, "");
-    if (trimmed.startsWith("https://") || trimmed.startsWith("http://localhost")) {
-      return trimmed;
+    try {
+      const parsed = new URL(trimmed);
+      const isLocalhost = parsed.protocol === "http:" && parsed.hostname === "localhost";
+      if (parsed.protocol === "https:" || isLocalhost) return trimmed;
+    } catch {
+      // Invalid URL — fall through to default
     }
   }
   return "https://www.kyalabs.io";

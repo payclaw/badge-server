@@ -69,7 +69,17 @@ else
   FAIL=1
 fi
 
-# 9. npm pack dry run (informational — review what ships)
+# 9. No file: dependencies (local-only, breaks for consumers)
+echo -n "file: dep sweep... "
+if grep -q '"file:' package.json 2>/dev/null; then
+  echo -e "${RED}FAIL — file: dependency found in package.json. Replace with versioned npm reference before publishing.${NC}"
+  grep '"file:' package.json
+  FAIL=1
+else
+  echo -e "${GREEN}OK${NC}"
+fi
+
+# 10. npm pack dry run (informational — review what ships)
 echo ""
 echo "=== Pack contents ==="
 npm pack --dry-run 2>&1
