@@ -1,5 +1,3 @@
-// Canonical: badge-server | Synced: mcp-server | Do not edit in mcp-server
-
 export interface SignalStatus {
   signals_active: boolean;
   signal_types: string[];

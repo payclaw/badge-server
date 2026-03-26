@@ -1,4 +1,3 @@
-// Canonical: badge-server | Synced: 0.7.3 | Do not edit in mcp-server
 import { storeConsentKey } from "./storage.js";
 import { getEnvApiUrl } from "./env.js";
 

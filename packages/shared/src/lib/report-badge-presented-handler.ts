@@ -1,4 +1,3 @@
-// Canonical: badge-server | Synced: 2.1.0 | Do not edit in mcp-server
 /**
  * Handler for kya_reportBadgePresented tool.
  * Extracted for testability (BUG-01.1 integration tests).

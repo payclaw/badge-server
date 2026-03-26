@@ -1,4 +1,3 @@
-// Canonical: badge-server | Synced: 2.0.0 | Do not edit in mcp-server
 import fs from "node:fs";
 import path from "node:path";
 import os from "node:os";

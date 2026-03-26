@@ -1,19 +1,29 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { getAgentIdentity, _resetBrowseDeclaredCache } from "./getAgentIdentity.js";
-import * as storage from "../lib/storage.js";
+import * as sharedIdentity from "@kyalabs/shared-identity";
 import * as api from "../api/client.js";
-import * as deviceAuth from "../lib/device-auth.js";
 
-vi.mock("../lib/storage.js", () => ({
-  getStoredConsentKey: vi.fn(),
-  getOrCreateInstallId: vi.fn(() => "inst-aaaa-bbbb-cccc-dddddddddddd"),
-}));
-
-vi.mock("../lib/env.js", () => ({
-  getEnvApiKey: vi.fn(() => null),
-  getEnvApiUrl: vi.fn(() => null),
-  getEnvExtendedAuth: vi.fn(() => false),
-}));
+vi.mock("@kyalabs/shared-identity", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@kyalabs/shared-identity")>();
+  return {
+    ...actual,
+    getStoredConsentKey: vi.fn(),
+    getOrCreateInstallId: vi.fn(() => "inst-aaaa-bbbb-cccc-dddddddddddd"),
+    getEnvApiKey: vi.fn(() => null),
+    getEnvApiUrl: vi.fn(() => null),
+    getEnvExtendedAuth: vi.fn(() => false),
+    fetchSignalStatus: vi.fn(() => null),
+    registerTripAssuranceLevel: vi.fn(),
+    onTripStarted: vi.fn(),
+    onIdentityPresented: vi.fn(),
+    initiateDeviceAuth: vi.fn(),
+    pollForApproval: vi.fn(),
+    fetchUCPManifest: vi.fn(() => null),
+    findBadgeCapability: vi.fn(() => null),
+    isVersionCompatible: vi.fn(() => false),
+    enrollAndCacheBadgeToken: vi.fn(() => Promise.resolve(null)),
+  };
+});
 
 vi.mock("../api/client.js", () => ({
   isApiMode: vi.fn(() => false),
@@ -21,27 +31,10 @@ vi.mock("../api/client.js", () => ({
   getAgentIdentityWithToken: vi.fn(),
   getBaseUrl: vi.fn(() => "https://www.kyalabs.io"),
   introspectBadgeToken: vi.fn(() => null),
-}));
-
-vi.mock("../lib/signal-status.js", () => ({
-  fetchSignalStatus: vi.fn(() => null),
-}));
-
-vi.mock("../sampling.js", () => ({
-  registerTripAssuranceLevel: vi.fn(),
-  onTripStarted: vi.fn(),
-  onIdentityPresented: vi.fn(),
-}));
-
-vi.mock("../lib/device-auth.js", () => ({
-  initiateDeviceAuth: vi.fn(),
-  pollForApproval: vi.fn(),
-}));
-
-vi.mock("../lib/ucp-manifest.js", () => ({
-  fetchUCPManifest: vi.fn(() => null),
-  findBadgeCapability: vi.fn(() => null),
-  isVersionCompatible: vi.fn(() => false),
+  getConfig: vi.fn(),
+  authHeaders: vi.fn(),
+  request: vi.fn(),
+  BadgeApiError: class extends Error { constructor(m: string, public statusCode?: number) { super(m); } },
 }));
 
 describe("getAgentIdentity — browse_declared auto-fire", () => {
@@ -59,8 +52,8 @@ describe("getAgentIdentity — browse_declared auto-fire", () => {
   });
 
   it("fires browse_declared when no consent key (activation path)", async () => {
-    vi.mocked(storage.getStoredConsentKey).mockReturnValue(null);
-    vi.mocked(deviceAuth.initiateDeviceAuth).mockResolvedValue({
+    vi.mocked(sharedIdentity.getStoredConsentKey).mockReturnValue(null);
+    vi.mocked(sharedIdentity.initiateDeviceAuth).mockResolvedValue({
       device_code: "dc",
       user_code: "UC",
       verification_uri: "https://kyalabs.io/activate",
@@ -68,7 +61,7 @@ describe("getAgentIdentity — browse_declared auto-fire", () => {
       interval: 5,
       expires_in: 300,
     });
-    vi.mocked(deviceAuth.pollForApproval).mockResolvedValue(undefined as any);
+    vi.mocked(sharedIdentity.pollForApproval).mockResolvedValue(undefined as any);
 
     const result = await getAgentIdentity("amazon.com");
 
@@ -95,7 +88,7 @@ describe("getAgentIdentity — browse_declared auto-fire", () => {
   });
 
   it("fires browse_declared via anonymous path even when consent key exists", async () => {
-    vi.mocked(storage.getStoredConsentKey).mockReturnValue("pk_test_xxx");
+    vi.mocked(sharedIdentity.getStoredConsentKey).mockReturnValue("pk_test_xxx");
     vi.mocked(api.isApiMode).mockReturnValue(false);
 
     await getAgentIdentity("target.com");
@@ -118,8 +111,8 @@ describe("getAgentIdentity — browse_declared auto-fire", () => {
   });
 
   it("[EC-4] fires browse_declared on activation_required path", async () => {
-    vi.mocked(storage.getStoredConsentKey).mockReturnValue(null);
-    vi.mocked(deviceAuth.initiateDeviceAuth).mockResolvedValue({
+    vi.mocked(sharedIdentity.getStoredConsentKey).mockReturnValue(null);
+    vi.mocked(sharedIdentity.initiateDeviceAuth).mockResolvedValue({
       device_code: "dc",
       user_code: "UC",
       verification_uri: "https://kyalabs.io/activate",
@@ -127,7 +120,7 @@ describe("getAgentIdentity — browse_declared auto-fire", () => {
       interval: 5,
       expires_in: 300,
     });
-    vi.mocked(deviceAuth.pollForApproval).mockResolvedValue(undefined as any);
+    vi.mocked(sharedIdentity.pollForApproval).mockResolvedValue(undefined as any);
 
     const result = await getAgentIdentity("shop.com");
     expect(result.activation_required).toBe(true);
@@ -144,7 +137,7 @@ describe("getAgentIdentity — browse_declared auto-fire", () => {
   });
 
   it("[EC-4] fires browse_declared in mock mode", async () => {
-    vi.mocked(storage.getStoredConsentKey).mockReturnValue("pk_test_xxx");
+    vi.mocked(sharedIdentity.getStoredConsentKey).mockReturnValue("pk_test_xxx");
     vi.mocked(api.isApiMode).mockReturnValue(false);
 
     await getAgentIdentity("mockstore.com");
@@ -160,7 +153,7 @@ describe("getAgentIdentity — browse_declared auto-fire", () => {
   });
 
   it("[EC-5] identity still returned when browse_declared fetch throws", async () => {
-    vi.mocked(storage.getStoredConsentKey).mockReturnValue("pk_test_xxx");
+    vi.mocked(sharedIdentity.getStoredConsentKey).mockReturnValue("pk_test_xxx");
     vi.mocked(api.isApiMode).mockReturnValue(false);
     mockFetch.mockRejectedValue(new Error("network down"));
 
@@ -172,9 +165,9 @@ describe("getAgentIdentity — browse_declared auto-fire", () => {
   });
 
   it("[EC-5] identity still returned when getOrCreateInstallId throws", async () => {
-    vi.mocked(storage.getStoredConsentKey).mockReturnValue("pk_test_xxx");
+    vi.mocked(sharedIdentity.getStoredConsentKey).mockReturnValue("pk_test_xxx");
     vi.mocked(api.isApiMode).mockReturnValue(false);
-    vi.mocked(storage.getOrCreateInstallId).mockImplementation(() => {
+    vi.mocked(sharedIdentity.getOrCreateInstallId).mockImplementation(() => {
       throw new Error("homedir unavailable");
     });
 
@@ -200,7 +193,7 @@ describe("getAgentIdentity — trip_id (v2.1)", () => {
   });
 
   it("response includes trip_id as a valid UUID", async () => {
-    vi.mocked(storage.getStoredConsentKey).mockReturnValue("pk_test_xxx");
+    vi.mocked(sharedIdentity.getStoredConsentKey).mockReturnValue("pk_test_xxx");
     vi.mocked(api.isApiMode).mockReturnValue(false);
 
     const result = await getAgentIdentity("store.com");
@@ -212,7 +205,7 @@ describe("getAgentIdentity — trip_id (v2.1)", () => {
   });
 
   it("each call generates a unique trip_id", async () => {
-    vi.mocked(storage.getStoredConsentKey).mockReturnValue("pk_test_xxx");
+    vi.mocked(sharedIdentity.getStoredConsentKey).mockReturnValue("pk_test_xxx");
     vi.mocked(api.isApiMode).mockReturnValue(false);
 
     const r1 = await getAgentIdentity("store.com");
@@ -223,8 +216,8 @@ describe("getAgentIdentity — trip_id (v2.1)", () => {
   });
 
   it("browse_declared payload includes trip_id", async () => {
-    vi.mocked(storage.getStoredConsentKey).mockReturnValue(null);
-    vi.mocked(deviceAuth.initiateDeviceAuth).mockResolvedValue({
+    vi.mocked(sharedIdentity.getStoredConsentKey).mockReturnValue(null);
+    vi.mocked(sharedIdentity.initiateDeviceAuth).mockResolvedValue({
       device_code: "dc",
       user_code: "UC",
       verification_uri: "https://kyalabs.io/activate",
@@ -232,7 +225,7 @@ describe("getAgentIdentity — trip_id (v2.1)", () => {
       interval: 5,
       expires_in: 300,
     });
-    vi.mocked(deviceAuth.pollForApproval).mockResolvedValue(undefined as any);
+    vi.mocked(sharedIdentity.pollForApproval).mockResolvedValue(undefined as any);
 
     const result = await getAgentIdentity("amazon.com");
 
@@ -249,8 +242,8 @@ describe("getAgentIdentity — trip_id (v2.1)", () => {
   });
 
   it("trip_id present even on activation_required path", async () => {
-    vi.mocked(storage.getStoredConsentKey).mockReturnValue(null);
-    vi.mocked(deviceAuth.initiateDeviceAuth).mockResolvedValue({
+    vi.mocked(sharedIdentity.getStoredConsentKey).mockReturnValue(null);
+    vi.mocked(sharedIdentity.initiateDeviceAuth).mockResolvedValue({
       device_code: "dc",
       user_code: "UC",
       verification_uri: "https://kyalabs.io/activate",
@@ -258,7 +251,7 @@ describe("getAgentIdentity — trip_id (v2.1)", () => {
       interval: 5,
       expires_in: 300,
     });
-    vi.mocked(deviceAuth.pollForApproval).mockResolvedValue(undefined as any);
+    vi.mocked(sharedIdentity.pollForApproval).mockResolvedValue(undefined as any);
 
     const result = await getAgentIdentity("store.com");
 
@@ -285,7 +278,7 @@ describe("getAgentIdentity — next_step field", () => {
   });
 
   it("response includes next_step in mock mode", async () => {
-    vi.mocked(storage.getStoredConsentKey).mockReturnValue("pk_test_xxx");
+    vi.mocked(sharedIdentity.getStoredConsentKey).mockReturnValue("pk_test_xxx");
     vi.mocked(api.isApiMode).mockReturnValue(false);
 
     const result = await getAgentIdentity("store.com");
@@ -296,8 +289,8 @@ describe("getAgentIdentity — next_step field", () => {
   });
 
   it("response includes next_step in activation path", async () => {
-    vi.mocked(storage.getStoredConsentKey).mockReturnValue(null);
-    vi.mocked(deviceAuth.initiateDeviceAuth).mockResolvedValue({
+    vi.mocked(sharedIdentity.getStoredConsentKey).mockReturnValue(null);
+    vi.mocked(sharedIdentity.initiateDeviceAuth).mockResolvedValue({
       device_code: "dc",
       user_code: "UC",
       verification_uri: "https://kyalabs.io/activate",
@@ -305,7 +298,7 @@ describe("getAgentIdentity — next_step field", () => {
       interval: 5,
       expires_in: 300,
     });
-    vi.mocked(deviceAuth.pollForApproval).mockResolvedValue(undefined as any);
+    vi.mocked(sharedIdentity.pollForApproval).mockResolvedValue(undefined as any);
 
     const result = await getAgentIdentity("store.com");
 
@@ -332,7 +325,7 @@ describe("getAgentIdentity — v2.2: assurance_level", () => {
 
   // Contract 2.2.6 — IdentityResult includes assurance_level from introspect
   it("attaches assurance_level to result when introspect returns level", async () => {
-    vi.mocked(storage.getStoredConsentKey).mockReturnValue("pk_test_xxx");
+    vi.mocked(sharedIdentity.getStoredConsentKey).mockReturnValue("pk_test_xxx");
     vi.mocked(api.isApiMode).mockReturnValue(false);
     vi.mocked(api.introspectBadgeToken).mockResolvedValue({
       active: true,
@@ -344,7 +337,7 @@ describe("getAgentIdentity — v2.2: assurance_level", () => {
   });
 
   it("result.assurance_level is null when introspect returns null (graceful)", async () => {
-    vi.mocked(storage.getStoredConsentKey).mockReturnValue("pk_test_xxx");
+    vi.mocked(sharedIdentity.getStoredConsentKey).mockReturnValue("pk_test_xxx");
     vi.mocked(api.isApiMode).mockReturnValue(false);
     vi.mocked(api.introspectBadgeToken).mockResolvedValue(null);
 
@@ -354,7 +347,7 @@ describe("getAgentIdentity — v2.2: assurance_level", () => {
   });
 
   it("mock tokens (pc_v1_sand) skip introspect — assurance_level null", async () => {
-    vi.mocked(storage.getStoredConsentKey).mockReturnValue("pk_test_xxx");
+    vi.mocked(sharedIdentity.getStoredConsentKey).mockReturnValue("pk_test_xxx");
     vi.mocked(api.isApiMode).mockReturnValue(false);
     // introspectBadgeToken mock returns null for sand tokens (already handled by implementation)
     vi.mocked(api.introspectBadgeToken).mockResolvedValue(null);
@@ -369,15 +362,12 @@ describe("getAgentIdentity — v2.2: assurance_level", () => {
 
 describe("getAgentIdentity — v2.3: merchant_signals", () => {
   const mockFetch = vi.fn();
-  // Import signal-status module for mocking
-  let signalStatus: typeof import("../lib/signal-status.js");
 
-  beforeEach(async () => {
+  beforeEach(() => {
     vi.stubGlobal("fetch", mockFetch);
     mockFetch.mockResolvedValue({ ok: true });
     _resetBrowseDeclaredCache();
-    signalStatus = await import("../lib/signal-status.js");
-    vi.mocked(signalStatus.fetchSignalStatus).mockResolvedValue(null);
+    vi.mocked(sharedIdentity.fetchSignalStatus).mockResolvedValue(null);
   });
 
   afterEach(() => {
@@ -387,9 +377,9 @@ describe("getAgentIdentity — v2.3: merchant_signals", () => {
 
   // Contract 2.3.9 — getAgentIdentity result includes merchant_signals
   it("attaches merchant_signals when fetchSignalStatus returns active status", async () => {
-    vi.mocked(storage.getStoredConsentKey).mockReturnValue("pk_test_xxx");
+    vi.mocked(sharedIdentity.getStoredConsentKey).mockReturnValue("pk_test_xxx");
     vi.mocked(api.isApiMode).mockReturnValue(false);
-    vi.mocked(signalStatus.fetchSignalStatus).mockResolvedValue({
+    vi.mocked(sharedIdentity.fetchSignalStatus).mockResolvedValue({
       signals_active: true,
       signal_types: ["window_kya_commerce", "meta_tags"],
     });
@@ -400,9 +390,9 @@ describe("getAgentIdentity — v2.3: merchant_signals", () => {
   });
 
   it("merchant_signals is null when fetchSignalStatus returns null (graceful)", async () => {
-    vi.mocked(storage.getStoredConsentKey).mockReturnValue("pk_test_xxx");
+    vi.mocked(sharedIdentity.getStoredConsentKey).mockReturnValue("pk_test_xxx");
     vi.mocked(api.isApiMode).mockReturnValue(false);
-    vi.mocked(signalStatus.fetchSignalStatus).mockResolvedValue(null);
+    vi.mocked(sharedIdentity.fetchSignalStatus).mockResolvedValue(null);
 
     const result = await getAgentIdentity("https://store.com");
     // Should not throw — no merchant_signals is acceptable
@@ -411,9 +401,9 @@ describe("getAgentIdentity — v2.3: merchant_signals", () => {
 
   // Contract 2.3.10 — signal_context_received fired when signals active
   it("fires signal_context_received POST when signals are active", async () => {
-    vi.mocked(storage.getStoredConsentKey).mockReturnValue("pk_test_xxx");
+    vi.mocked(sharedIdentity.getStoredConsentKey).mockReturnValue("pk_test_xxx");
     vi.mocked(api.isApiMode).mockReturnValue(false);
-    vi.mocked(signalStatus.fetchSignalStatus).mockResolvedValue({
+    vi.mocked(sharedIdentity.fetchSignalStatus).mockResolvedValue({
       signals_active: true,
       signal_types: ["window_kya_commerce"],
     });
@@ -436,9 +426,9 @@ describe("getAgentIdentity — v2.3: merchant_signals", () => {
   });
 
   it("does NOT fire signal_context_received when signals are inactive", async () => {
-    vi.mocked(storage.getStoredConsentKey).mockReturnValue("pk_test_xxx");
+    vi.mocked(sharedIdentity.getStoredConsentKey).mockReturnValue("pk_test_xxx");
     vi.mocked(api.isApiMode).mockReturnValue(false);
-    vi.mocked(signalStatus.fetchSignalStatus).mockResolvedValue({
+    vi.mocked(sharedIdentity.fetchSignalStatus).mockResolvedValue({
       signals_active: false,
       signal_types: [],
     });

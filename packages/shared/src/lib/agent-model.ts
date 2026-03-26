@@ -1,4 +1,3 @@
-// Canonical: badge-server | Synced: 2.1.0 | mcp-server syncs from here
 /**
  * Detect the agent model (MCP client) running this server.
  *

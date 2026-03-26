@@ -1,11 +1,15 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
 
-vi.mock("../lib/badge-token.js", () => ({
-  getCachedBadgeToken: vi.fn(),
-}));
+vi.mock("@kyalabs/shared-identity", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@kyalabs/shared-identity")>();
+  return {
+    ...actual,
+    getCachedBadgeToken: vi.fn(),
+  };
+});
 
 import { getHeaders } from "./getHeaders.js";
-import { getCachedBadgeToken } from "../lib/badge-token.js";
+import { getCachedBadgeToken } from "@kyalabs/shared-identity";
 
 const mockGetToken = vi.mocked(getCachedBadgeToken);
 

@@ -1,7 +1,6 @@
-// Canonical: badge-server | Synced: 3.0.0 | Do not edit in mcp-server
 /**
  * Parse agent response to sampling prompt into sampling_response bucket.
- * Extracted for testability (BUG-01.1). Synced from mcp-server.
+ * Extracted for testability (BUG-01.1).
  *
  * S1: Values renamed — not_denied (absence of denial, NOT acceptance),
  * denied (agent reported block), unparseable (garbled/empty response).

@@ -1,16 +1,16 @@
 import { describe, it, expect, vi, afterEach, beforeEach } from "vitest";
 
-// Mock dependencies — hoisted before any imports
-vi.mock("../lib/env.js", () => ({
-  getEnvApiUrl: vi.fn().mockReturnValue("https://www.kyalabs.io"),
-  getEnvApiKey: vi.fn().mockReturnValue(null),
-  getEnvExtendedAuth: vi.fn().mockReturnValue(false),
-}));
-
-vi.mock("../lib/storage.js", () => ({
-  getStoredConsentKey: vi.fn().mockReturnValue(null),
-  getOrCreateInstallId: vi.fn().mockReturnValue("aaaaaaaa-0000-0000-0000-000000000001"),
-}));
+// Mock the shared identity module — introspectBadgeToken uses getEnvApiUrl internally
+vi.mock("@kyalabs/shared-identity", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@kyalabs/shared-identity")>();
+  return {
+    ...actual,
+    getEnvApiUrl: vi.fn().mockReturnValue("https://www.kyalabs.io"),
+    getEnvApiKey: vi.fn().mockReturnValue(null),
+    getStoredConsentKey: vi.fn().mockReturnValue(null),
+    getOrCreateInstallId: vi.fn().mockReturnValue("aaaaaaaa-0000-0000-0000-000000000001"),
+  };
+});
 
 import { introspectBadgeToken } from "./client.js";
 

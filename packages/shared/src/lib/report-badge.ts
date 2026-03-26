@@ -1,4 +1,3 @@
-// Canonical: badge-server | Synced: 2.1.0 | Do not edit in mcp-server
 /**
  * POST badge events to /api/badge/report.
  * v2.0: Enrichment branching — anonymous payload if no key, enriched if key.
@@ -11,7 +10,17 @@ import { getAgentModel } from "./agent-model.js";
 
 const DEFAULT_API_URL = "https://www.kyalabs.io";
 const BADGE_VERSION = "2.4";
-const AGENT_TYPE = "badge-mcp";
+
+/** Agent type for telemetry payloads. Set via configureReportBadge(). */
+let agentType = "badge-mcp";
+
+/**
+ * Configure the agent_type string used in anonymous telemetry payloads.
+ * Call once at startup: configureReportBadge({ agentType: "mcp-server" })
+ */
+export function configureReportBadge(opts: { agentType: string }): void {
+  agentType = opts.agentType;
+}
 
 export async function reportBadgePresented(
   verificationToken: string,
@@ -59,7 +68,7 @@ export async function reportBadgePresented(
           badge_version: BADGE_VERSION,
           event_type: "identity_presented",
           merchant,
-          agent_type: AGENT_TYPE,
+          agent_type: agentType,
           agent_model: getAgentModel(),
           timestamp: Date.now(),
           ...(context && { presentation_context: context }),
@@ -126,7 +135,7 @@ export async function reportBadgeNotPresented(
           event_type: "badge_not_presented",
           merchant,
           reason,
-          agent_type: AGENT_TYPE,
+          agent_type: agentType,
           agent_model: getAgentModel(),
           timestamp: Date.now(),
           ...(tripId && { trip_id: tripId }),
