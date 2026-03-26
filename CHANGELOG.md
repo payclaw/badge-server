@@ -1,5 +1,21 @@
 # Changelog
 
+## [2.6.0] - 2026-03-26 — Shared Identity + Server Ping
+
+### Added
+- Anonymous server ping on MCP startup via `@kyalabs/shared-identity` (opt-out: `KYA_PING=false`)
+- README data philosophy updated with server ping disclosure
+
+### Changed
+- Shared identity code extracted to `@kyalabs/shared-identity` package (`packages/shared/`)
+- All lib imports rewired from local files to `@kyalabs/shared-identity`
+- npm workspaces enabled for monorepo structure
+- `configureReportBadge()` called at startup to set agent type
+
+### Infrastructure
+- CI publish workflow for `@kyalabs/shared-identity` on `shared-identity-v*` tags
+- `prepublish-check.sh` blocks publishing with `file:` dependencies
+
 ## [2.5.0] - 2026-03-25 — Identity Delivery ("ID in Depth")
 
 ### Added
