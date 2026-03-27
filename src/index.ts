@@ -237,7 +237,7 @@ async function main() {
   initAgentModel(server.server);
 
   // Tier 1: Anonymous server ping (opt-out: KYA_PING=false)
-  fireServerPing("2.6.0");
+  fireServerPing("2.6.0", "badge-mcp");
 
   // Handle clean shutdown — flush pending telemetry before exit
   process.on("SIGINT", async () => {
