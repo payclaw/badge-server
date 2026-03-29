@@ -46,6 +46,7 @@ describe("fireServerPing", () => {
     expect(body.session_id).toMatch(
       /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
     );
+    expect(body.platform).toBe(process.platform);
     expect(typeof body.timestamp).toBe("number");
   });
 

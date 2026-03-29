@@ -41,6 +41,7 @@ export function fireServerPing(badgeVersion: string, serverType?: string): void 
       badge_version: badgeVersion,
       agent_client: getAgentModel() ?? "unknown",
       server_type: serverType ?? null,
+      platform: process.platform,
       timestamp: Date.now(),
     };
 

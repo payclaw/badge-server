@@ -7,34 +7,38 @@
  * 3. Fallback: "unknown"
  *
  * Values are raw client strings — normalization happens in DB views.
+ *
+ * Note: server.connect() resolves when the transport is ready, BEFORE the
+ * client sends its initialize request. getClientVersion() only returns data
+ * after the handshake completes. We store a server reference and read lazily
+ * so the ping (fired 2s after connect) picks up the value once available.
  */
 
 import type { Server } from "@modelcontextprotocol/sdk/server/index.js";
 
-let cachedModel: string | null = null;
+let serverRef: Server | null = null;
 
 /**
- * Initialize model detection from the MCP server's client handshake.
+ * Store a reference to the MCP server for lazy client detection.
  * Call once after server.connect() completes.
  */
 export function initAgentModel(server: Server): void {
-  try {
-    const clientInfo = server.getClientVersion();
-    if (clientInfo?.name) {
-      cachedModel = clientInfo.name;
-    }
-  } catch {
-    // getClientVersion() may throw if called before handshake — safe to ignore
-  }
+  serverRef = server;
 }
 
 /**
  * Get the detected agent model string.
+ * Reads lazily from the server — safe to call before or after handshake.
  * Returns raw client name (e.g. "claude-desktop", "cursor", "continue").
  */
 export function getAgentModel(): string {
-  // 1. MCP client info (set during init)
-  if (cachedModel) return cachedModel;
+  // 1. MCP client info (read lazily — handshake may have completed since init)
+  try {
+    const clientInfo = serverRef?.getClientVersion();
+    if (clientInfo?.name) return clientInfo.name;
+  } catch {
+    // getClientVersion() may throw if called before handshake — safe to ignore
+  }
 
   // 2. Explicit env override
   const envModel = process.env.KYA_AGENT_MODEL?.trim();
