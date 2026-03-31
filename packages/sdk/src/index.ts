@@ -1,6 +1,12 @@
 // @kyalabs/badge-sdk — Framework-agnostic Badge identity primitive
 // SDK exports: everything that does NOT depend on @modelcontextprotocol/sdk
 
+// --- Badge class (primary API surface) ---
+export { Badge, type IdentityType, type BadgeInitOptions } from "./badge.js";
+
+// --- Guest pass lifecycle ---
+export { issueGuestPass, loadCachedGuestPass, cacheGuestPass, type GuestPassResult } from "./guest-pass.js";
+
 // --- Types ---
 export type { AgentIdentityResponse } from "./types.js";
 
