@@ -4,8 +4,12 @@
   "description": "Badge identity primitive for AI agents. Framework-agnostic SDK.",
   "type": "module",
   "main": "dist/index.js",
+  "types": "dist/index.d.ts",
   "exports": {
-    ".": "./dist/index.js"
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
   },
   "files": ["dist", "README.md", "LICENSE"],
   "scripts": {
