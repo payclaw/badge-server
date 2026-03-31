@@ -12,7 +12,7 @@ import { getHeaders } from "./tools/getHeaders.js";
 import { webFetch } from "./tools/webFetch.js";
 
 // Configure shared report-badge with badge-server agent type
-configureReportBadge({ agentType: "badge-mcp", agentModel: getAgentModel() });
+configureReportBadge({ agentType: "badge-mcp", agentModel: () => getAgentModel() });
 
 const server = new McpServer({
   name: "kyalabs-badge",
