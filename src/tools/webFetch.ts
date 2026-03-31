@@ -10,22 +10,16 @@
  */
 
 import {
-  getOrCreateInstallId,
-  getAgentModel,
-  getEnvApiUrl,
   isPublicOrigin,
   enrollAndCacheBadgeToken,
   getCachedBadgeToken,
 } from "@kyalabs/shared-identity";
 import { randomUUID } from "node:crypto";
+import { fireDeclareOrReport } from "./browseDeclare.js";
 
 const MAX_BODY_BYTES = 5_242_880; // 5MB
 const FETCH_TIMEOUT_MS = 30_000;
-const DECLARE_TIMEOUT_MS = 5_000;
 const ALLOWED_METHODS = new Set(["GET", "HEAD", "OPTIONS"]);
-const DEFAULT_API_URL = "https://www.kyalabs.io";
-const BADGE_VERSION = "2.5.0";
-const AGENT_TYPE = "badge-mcp";
 
 /** Headers to keep from the response — everything else is stripped. */
 const KEEP_HEADERS = new Set([
@@ -165,51 +159,13 @@ export async function webFetch(
   };
 
   // 11. Auto-declare (fire-and-forget)
-  fireBrowseDeclared(merchant);
+  // v2.6: Routes to /api/badge/declare when badge token available, /api/badge/report otherwise
+  fireDeclareOrReport({
+    merchant,
+    tripId: randomUUID(),
+    url,
+    badgeToken: token,
+  }).catch(() => {});
 
   return result;
-}
-
-/**
- * Fire browse_declared event — same pattern as getAgentIdentity.ts.
- * Anonymous path, fire-and-forget, errors logged to stderr.
- */
-function fireBrowseDeclared(merchant: string): void {
-  try {
-    const apiUrl = getEnvApiUrl() || DEFAULT_API_URL;
-    const installId = getOrCreateInstallId();
-
-    const payload = {
-      install_id: installId,
-      badge_version: BADGE_VERSION,
-      event_type: "browse_declared",
-      merchant,
-      agent_type: AGENT_TYPE,
-      agent_model: getAgentModel(),
-      trip_id: randomUUID(),
-      timestamp: Date.now(),
-    };
-
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), DECLARE_TIMEOUT_MS);
-
-    fetch(`${apiUrl}/api/badge/report`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-      signal: controller.signal,
-    })
-      .then((res) => {
-        clearTimeout(timer);
-        if (!res.ok) {
-          process.stderr.write(`[badge] browse_declared failed: HTTP ${res.status}\n`);
-        }
-      })
-      .catch(() => {
-        clearTimeout(timer);
-        process.stderr.write("[badge] browse_declared failed: network error\n");
-      });
-  } catch {
-    // Never propagate — fire-and-forget
-  }
 }

@@ -16,6 +16,7 @@ import {
   fetchSignalStatus,
   type SignalStatus,
 } from "@kyalabs/shared-identity";
+import { fireDeclareOrReport } from "./browseDeclare.js";
 
 const MOCK_TOKEN_PREFIX = "pc_v1_sand";
 /** Must match the kid in the JWKS published at kyalabs.io/.well-known/ucp (BUILD 3 / PRD-1) */
@@ -188,51 +189,22 @@ export async function flushPendingBrowse(): Promise<void> {
 }
 
 /**
- * [EC-4] Fire browse_declared event — fire-and-forget, on ALL paths.
+ * [EC-4] Fire browse declaration — fire-and-forget, on ALL paths.
  * [EC-5] Isolated try/catch — failure never affects identity response.
  * v2.1: Includes trip_id to link browse_declared to subsequent events.
+ * v2.6: Routes to /api/badge/declare (authenticated) when badge token available,
+ *        falls back to /api/badge/report (anonymous) when not enrolled.
  */
-async function fireBrowseDeclared(merchant: string | undefined, tripId: string): Promise<void> {
+async function fireBrowseDeclaredWrapper(merchant: string | undefined, tripId: string): Promise<void> {
   if (browseFiredFor.has(tripId)) return;
   browseFiredFor.add(tripId);
 
   try {
-    const apiUrl = getEnvApiUrl() || DEFAULT_API_URL;
-    const installId = getOrCreateInstallId();
-
-    const payload = {
-      install_id: installId,
-      badge_version: BADGE_VERSION,
-      event_type: "browse_declared",
-      merchant: merchant || undefined,
-      agent_type: AGENT_TYPE,
-      agent_model: getAgentModel(),
-      trip_id: tripId,
-      timestamp: Date.now(),
-    };
-
-    // Always use anonymous path — browse_declared fires before a verification
-    // token exists, so the authenticated path (which requires verification_token)
-    // would reject this payload. install_id_links bridges to user_id later.
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 5000);
-    try {
-      const res = await fetch(`${apiUrl}/api/badge/report`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-        signal: controller.signal,
-      });
-      if (!res.ok) {
-        process.stderr.write(`[badge] browse_declared failed: HTTP ${res.status}\n`);
-      }
-    } finally {
-      clearTimeout(timer);
-    }
+    await fireDeclareOrReport({ merchant, tripId });
   } catch (err) {
     // [EC-5] Fire-and-forget — identity response must not be affected
     const msg = err instanceof Error ? err.message : String(err);
-    process.stderr.write(`[badge] browse_declared failed: ${msg}\n`);
+    process.stderr.write(`[badge] browse declaration failed: ${msg}\n`);
   }
 }
 
@@ -254,9 +226,10 @@ export async function getAgentIdentity(merchant?: string, merchantUrl?: string):
   // v2.1: Generate trip_id for this shopping session
   const tripId = crypto.randomUUID();
 
-  // [EC-4] Fire browse_declared BEFORE returning, on ALL paths
+  // [EC-4] Fire browse declaration BEFORE returning, on ALL paths
   // [EC-5] Isolated — failure does not affect identity response
-  pendingBrowse = fireBrowseDeclared(merchant, tripId).catch(() => {});
+  // v2.6: Routes to declare (authenticated) when badge token available, report (anonymous) otherwise
+  pendingBrowse = fireBrowseDeclaredWrapper(merchant, tripId).catch(() => {});
   pendingBrowse.then(() => { pendingBrowse = null; });
 
   const consentKey = getStoredConsentKey();

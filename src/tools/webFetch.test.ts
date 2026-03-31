@@ -252,25 +252,22 @@ describe("webFetch", () => {
   // --- Auto-declare ---
 
   describe("auto-declare", () => {
-    it("fires browse_declared event after successful fetch", async () => {
+    it("fires declare event via /api/badge/declare when badge token available", async () => {
       mockFetch.mockResolvedValue(mockResponse("ok"));
       await webFetch("https://www.etsy.com/products");
 
+      // When badge token is available, calls /api/badge/declare with Bearer auth
       const declareCalls = mockFetch.mock.calls.filter((c: any[]) => {
-        try {
-          const body = JSON.parse(c[1]?.body || "{}");
-          return body.event_type === "browse_declared";
-        } catch {
-          return false;
-        }
+        const url = c[0] as string;
+        return url.includes("/api/badge/declare");
       });
       expect(declareCalls.length).toBe(1);
 
       const payload = JSON.parse(declareCalls[0][1].body);
       expect(payload.merchant).toBe("etsy.com"); // www. stripped
-      expect(payload.install_id).toBe("inst-aaaa-bbbb-cccc-dddddddddddd");
-      expect(payload.event_type).toBe("browse_declared");
+      expect(payload.context).toBe("arrival"); // inferred from URL
       expect(payload.trip_id).toBeDefined();
+      expect(declareCalls[0][1].headers.Authorization).toBe("Bearer kya_test_badge_token");
     });
 
     it("declare failure does not cause tool error", async () => {
