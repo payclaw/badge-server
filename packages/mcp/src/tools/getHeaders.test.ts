@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
 
-vi.mock("@kyalabs/shared-identity", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("@kyalabs/shared-identity")>();
+vi.mock("@kyalabs/badge-sdk", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@kyalabs/badge-sdk")>();
   return {
     ...actual,
     getCachedBadgeToken: vi.fn(),
@@ -9,7 +9,7 @@ vi.mock("@kyalabs/shared-identity", async (importOriginal) => {
 });
 
 import { getHeaders } from "./getHeaders.js";
-import { getCachedBadgeToken } from "@kyalabs/shared-identity";
+import { getCachedBadgeToken } from "@kyalabs/badge-sdk";
 
 const mockGetToken = vi.mocked(getCachedBadgeToken);
 

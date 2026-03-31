@@ -6,20 +6,25 @@
 
 import { getStoredConsentKey, getOrCreateInstallId } from "./storage.js";
 import { getEnvApiUrl } from "./env.js";
-import { getAgentModel } from "./agent-model.js";
 
 const DEFAULT_API_URL = "https://www.kyalabs.io";
 const BADGE_VERSION = "2.4";
 
 /** Agent type for telemetry payloads. Set via configureReportBadge(). */
 let agentType = "badge-mcp";
+/** Agent model resolver — evaluated lazily at event time so MCP handshake has completed. */
+let agentModelResolver: (() => string | undefined) | undefined;
 
 /**
- * Configure the agent_type string used in anonymous telemetry payloads.
- * Call once at startup: configureReportBadge({ agentType: "mcp-server" })
+ * Configure the agent_type and optional agent_model for telemetry payloads.
+ * agentModel accepts a string OR a getter function (for lazy evaluation after MCP handshake).
+ * Call once at startup: configureReportBadge({ agentType: "badge-mcp", agentModel: () => getAgentModel() })
  */
-export function configureReportBadge(opts: { agentType: string }): void {
+export function configureReportBadge(opts: { agentType: string; agentModel?: string | (() => string | undefined) }): void {
   agentType = opts.agentType;
+  if (opts.agentModel !== undefined) {
+    agentModelResolver = typeof opts.agentModel === "function" ? opts.agentModel : () => opts.agentModel as string;
+  }
 }
 
 export async function reportBadgePresented(
@@ -69,7 +74,7 @@ export async function reportBadgePresented(
           event_type: "identity_presented",
           merchant,
           agent_type: agentType,
-          agent_model: getAgentModel(),
+          agent_model: agentModelResolver?.(),
           timestamp: Date.now(),
           ...(context && { presentation_context: context }),
           ...(tripId && { trip_id: tripId }),
@@ -136,7 +141,7 @@ export async function reportBadgeNotPresented(
           merchant,
           reason,
           agent_type: agentType,
-          agent_model: getAgentModel(),
+          agent_model: agentModelResolver?.(),
           timestamp: Date.now(),
           ...(tripId && { trip_id: tripId }),
         }),

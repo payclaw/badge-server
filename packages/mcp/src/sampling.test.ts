@@ -16,13 +16,19 @@ import {
   reportOutcomeFromAgent,
   registerTripAssuranceLevel,
 } from "./sampling.js";
-import * as storage from "./lib/storage.js";
+import * as badgeSdk from "@kyalabs/badge-sdk";
 
-vi.mock("./lib/storage.js", () => ({
-  getStoredConsentKey: vi.fn(),
-  storeConsentKey: vi.fn(),
-  getOrCreateInstallId: vi.fn(() => "inst-aaaa-bbbb-cccc-dddddddddddd"),
-}));
+vi.mock("@kyalabs/badge-sdk", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@kyalabs/badge-sdk")>();
+  return {
+    ...actual,
+    getStoredConsentKey: vi.fn(),
+    getOrCreateInstallId: vi.fn(() => "inst-aaaa-bbbb-cccc-dddddddddddd"),
+    getEnvExtendedAuth: vi.fn(() => false),
+    getEnvApiUrl: vi.fn(() => null),
+    parseResponse: actual.parseResponse,
+  };
+});
 
 describe("sampling", () => {
   let originalVitest: string | undefined;
@@ -33,7 +39,7 @@ describe("sampling", () => {
     process.env.VITEST = "true";
     vi.stubGlobal("fetch", mockFetch);
     mockFetch.mockResolvedValue({ ok: true });
-    vi.mocked(storage.getStoredConsentKey).mockReturnValue("pk_test_xxx");
+    vi.mocked(badgeSdk.getStoredConsentKey).mockReturnValue("pk_test_xxx");
     resetSamplingState();
   });
 
@@ -164,7 +170,7 @@ describe("sampling", () => {
     it("reportOutcome with no key -> anonymous POST fires, trip evicted (v2.0 fix)", async () => {
       vi.useFakeTimers();
       mockFetch.mockClear();
-      vi.mocked(storage.getStoredConsentKey).mockReturnValue(null);
+      vi.mocked(badgeSdk.getStoredConsentKey).mockReturnValue(null);
 
       process.env.KYA_EXTENDED_AUTH = "true";
       const mockServer = {
@@ -335,7 +341,7 @@ describe("sampling", () => {
     // Contract 2.2.5 — assurance_level included in outcome report payload
     it("includes assurance_level in anonymous POST on resolve", () => {
       mockFetch.mockClear();
-      vi.mocked(storage.getStoredConsentKey).mockReturnValue(null);
+      vi.mocked(badgeSdk.getStoredConsentKey).mockReturnValue(null);
 
       registerTripAssuranceLevel("t_report", "elite");
       onTripStarted("t_report", "shop.com");
@@ -352,7 +358,7 @@ describe("sampling", () => {
 
     it("includes assurance_level in enriched (auth) POST on resolve", () => {
       mockFetch.mockClear();
-      vi.mocked(storage.getStoredConsentKey).mockReturnValue("pk_live_xxx");
+      vi.mocked(badgeSdk.getStoredConsentKey).mockReturnValue("pk_live_xxx");
 
       registerTripAssuranceLevel("t_auth", "regular");
       onTripStarted("t_auth", "shop.com");
@@ -390,7 +396,7 @@ describe("sampling", () => {
   describe("reportOutcome — anonymous mode (v2.0)", () => {
     it("anonymous resolveTrip POSTs without Authorization header", () => {
       mockFetch.mockClear();
-      vi.mocked(storage.getStoredConsentKey).mockReturnValue(null);
+      vi.mocked(badgeSdk.getStoredConsentKey).mockReturnValue(null);
 
       onTripStarted("tok_anon", "shop.com");
       onIdentityPresented("tok_anon", "shop.com");
@@ -407,7 +413,7 @@ describe("sampling", () => {
 
     it("anonymous reportOutcomeFromAgent includes install_id and badge_version", () => {
       mockFetch.mockClear();
-      vi.mocked(storage.getStoredConsentKey).mockReturnValue(null);
+      vi.mocked(badgeSdk.getStoredConsentKey).mockReturnValue(null);
 
       onTripStarted("tok_anon3", "target.com");
       onIdentityPresented("tok_anon3", "target.com");

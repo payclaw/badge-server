@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
-vi.mock("@kyalabs/shared-identity", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("@kyalabs/shared-identity")>();
+vi.mock("@kyalabs/badge-sdk", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@kyalabs/badge-sdk")>();
   return {
     ...actual,
     getOrCreateInstallId: vi.fn(() => "inst-aaaa-bbbb-cccc-dddddddddddd"),
@@ -13,7 +13,7 @@ vi.mock("@kyalabs/shared-identity", async (importOriginal) => {
 });
 
 import { webFetch } from "./webFetch.js";
-import { getCachedBadgeToken, enrollAndCacheBadgeToken } from "@kyalabs/shared-identity";
+import { getCachedBadgeToken, enrollAndCacheBadgeToken } from "@kyalabs/badge-sdk";
 
 const mockGetCached = vi.mocked(getCachedBadgeToken);
 const mockEnroll = vi.mocked(enrollAndCacheBadgeToken);

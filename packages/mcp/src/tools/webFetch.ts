@@ -13,7 +13,7 @@ import {
   isPublicOrigin,
   enrollAndCacheBadgeToken,
   getCachedBadgeToken,
-} from "@kyalabs/shared-identity";
+} from "@kyalabs/badge-sdk";
 import { randomUUID } from "node:crypto";
 import { fireDeclareOrReport } from "./browseDeclare.js";
 

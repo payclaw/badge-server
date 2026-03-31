@@ -3,21 +3,16 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
 import { getAgentIdentity, formatIdentityResponse, flushPendingBrowse } from "./tools/getAgentIdentity.js";
-import {
-  initSampling,
-  onTripStarted,
-  onServerClose,
-  handleReportBadgePresented,
-  getAuthMode,
-  initAgentModel,
-  configureReportBadge,
-  fireServerPing,
-} from "@kyalabs/shared-identity";
+import { getAuthMode, configureReportBadge } from "@kyalabs/badge-sdk";
+import { initSampling, onTripStarted, onServerClose } from "./sampling.js";
+import { handleReportBadgePresented } from "./report-badge-presented-handler.js";
+import { initAgentModel, getAgentModel } from "./agent-model.js";
+import { fireServerPing } from "./server-ping.js";
 import { getHeaders } from "./tools/getHeaders.js";
 import { webFetch } from "./tools/webFetch.js";
 
 // Configure shared report-badge with badge-server agent type
-configureReportBadge({ agentType: "badge-mcp" });
+configureReportBadge({ agentType: "badge-mcp", agentModel: () => getAgentModel() });
 
 const server = new McpServer({
   name: "kyalabs-badge",

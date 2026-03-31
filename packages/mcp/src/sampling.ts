@@ -1,8 +1,6 @@
 import type { Server } from "@modelcontextprotocol/sdk/server/index.js";
-import { parseResponse } from "./lib/parse-outcome.js";
-import { getStoredConsentKey, getOrCreateInstallId } from "./lib/storage.js";
-import { getEnvExtendedAuth, getEnvApiUrl } from "./lib/env.js";
-import { getAgentModel } from "./lib/agent-model.js";
+import { parseResponse, getStoredConsentKey, getOrCreateInstallId, getEnvExtendedAuth, getEnvApiUrl } from "@kyalabs/badge-sdk";
+import { getAgentModel } from "./agent-model.js";
 
 const SAMPLING_DELAY_MS = 7000; // 7 seconds after identity_presented
 const SAMPLING_TIMEOUT_MS = 15000; // 15 seconds to respond

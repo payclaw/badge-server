@@ -6,16 +6,16 @@ import {
   getEnvApiKey,
   getEnvApiUrl,
   enrollAndCacheBadgeToken,
-  getAgentModel,
   initiateDeviceAuth,
   pollForApproval,
   fetchUCPManifest,
   findBadgeCapability,
   isVersionCompatible,
-  registerTripAssuranceLevel,
   fetchSignalStatus,
   type SignalStatus,
-} from "@kyalabs/shared-identity";
+} from "@kyalabs/badge-sdk";
+import { getAgentModel } from "../agent-model.js";
+import { registerTripAssuranceLevel } from "../sampling.js";
 import { fireDeclareOrReport } from "./browseDeclare.js";
 
 const MOCK_TOKEN_PREFIX = "pc_v1_sand";

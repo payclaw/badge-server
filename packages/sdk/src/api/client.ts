@@ -6,8 +6,8 @@
  */
 
 import type { AgentIdentityResponse } from "../types.js";
-import { getStoredConsentKey } from "../lib/storage.js";
-import { getEnvApiUrl } from "../lib/env.js";
+import { getStoredConsentKey } from "../storage.js";
+import { getEnvApiUrl } from "../env.js";
 
 export class BadgeApiError extends Error {
   constructor(

@@ -12,10 +12,10 @@
 
 import {
   getOrCreateInstallId,
-  getAgentModel,
   getEnvApiUrl,
   getCachedBadgeToken,
-} from "@kyalabs/shared-identity";
+} from "@kyalabs/badge-sdk";
+import { getAgentModel } from "../agent-model.js";
 
 const DEFAULT_API_URL = "https://www.kyalabs.io";
 const DECLARE_TIMEOUT_MS = 5_000;

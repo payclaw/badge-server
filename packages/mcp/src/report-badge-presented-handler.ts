@@ -3,8 +3,8 @@
  * Extracted for testability (BUG-01.1 integration tests).
  */
 
-import { onIdentityPresented } from "../sampling.js";
-import { reportBadgePresented } from "./report-badge.js";
+import { onIdentityPresented } from "./sampling.js";
+import { reportBadgePresented } from "@kyalabs/badge-sdk";
 
 /**
  * Idempotency (duplicate row prevention) and expired-token status

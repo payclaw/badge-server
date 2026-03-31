@@ -1,72 +1,64 @@
+// @kyalabs/badge-sdk — Framework-agnostic Badge identity primitive
+// SDK exports: everything that does NOT depend on @modelcontextprotocol/sdk
+
 // --- Types ---
 export type { AgentIdentityResponse } from "./types.js";
 
-// --- Lib utilities ---
+// --- Device auth ---
 export {
   initiateDeviceAuth,
   pollForApproval,
   type DeviceAuthResponse,
   type TokenSuccessResponse,
   type ApprovalCallback,
-} from "./lib/device-auth.js";
+} from "./device-auth.js";
 
+// --- Storage ---
 export {
   getStoredConsentKey,
   storeConsentKey,
   getOrCreateInstallId,
   getAuthMode,
   _resetInstallIdCache,
-} from "./lib/storage.js";
+} from "./storage.js";
 
-export { getEnvApiKey, getEnvApiUrl, getEnvExtendedAuth } from "./lib/env.js";
+// --- Environment ---
+export { getEnvApiKey, getEnvApiUrl, getEnvExtendedAuth } from "./env.js";
 
-export { getAgentModel, initAgentModel } from "./lib/agent-model.js";
+// --- Outcome parsing ---
+export { parseResponse } from "./parse-outcome.js";
 
-export { parseResponse } from "./lib/parse-outcome.js";
-
+// --- Signal status ---
 export {
   fetchSignalStatus,
   type SignalStatus,
-} from "./lib/signal-status.js";
+} from "./signal-status.js";
 
-export { handleReportBadgePresented } from "./lib/report-badge-presented-handler.js";
-
+// --- Telemetry (was report-badge) ---
 export {
   reportBadgePresented,
   reportBadgeNotPresented,
   configureReportBadge,
-} from "./lib/report-badge.js";
+} from "./telemetry.js";
 
-export { isPublicOrigin } from "./lib/url-safety.js";
+// --- URL safety ---
+export { isPublicOrigin } from "./url-safety.js";
 
+// --- Badge token ---
 export {
   enrollAndCacheBadgeToken,
   getCachedBadgeToken,
   _resetBadgeTokenCache,
-} from "./lib/badge-token.js";
+} from "./badge-token.js";
 
-export { fireServerPing } from "./lib/server-ping.js";
-
+// --- UCP manifest ---
 export {
   fetchUCPManifest,
   findBadgeCapability,
   isVersionCompatible,
   _resetManifestCache,
   type BadgeCapability,
-} from "./lib/ucp-manifest.js";
-
-// --- Sampling ---
-export {
-  initSampling,
-  onTripStarted,
-  onIdentityPresented,
-  onServerClose,
-  reportOutcomeFromAgent,
-  registerTripAssuranceLevel,
-  resetSamplingState,
-  getActiveTrip,
-  type ActiveTrip,
-} from "./sampling.js";
+} from "./ucp-manifest.js";
 
 // --- API client infrastructure ---
 export {

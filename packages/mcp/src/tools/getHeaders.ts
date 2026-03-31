@@ -8,7 +8,7 @@
  * consent key (kya API credential). These are different credential types.
  */
 
-import { getCachedBadgeToken } from "@kyalabs/shared-identity";
+import { getCachedBadgeToken } from "@kyalabs/badge-sdk";
 
 export interface GetHeadersSuccess {
   headers: { "Kya-Token": string };

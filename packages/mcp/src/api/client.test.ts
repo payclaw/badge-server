@@ -1,8 +1,8 @@
 import { describe, it, expect, vi, afterEach, beforeEach } from "vitest";
 
 // Mock the shared identity module — introspectBadgeToken uses getEnvApiUrl internally
-vi.mock("@kyalabs/shared-identity", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("@kyalabs/shared-identity")>();
+vi.mock("@kyalabs/badge-sdk", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@kyalabs/badge-sdk")>();
   return {
     ...actual,
     getEnvApiUrl: vi.fn().mockReturnValue("https://www.kyalabs.io"),

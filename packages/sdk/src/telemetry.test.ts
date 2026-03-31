@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import {
   reportBadgePresented,
   reportBadgeNotPresented,
-} from "./report-badge.js";
+} from "./telemetry.js";
 import * as storage from "./storage.js";
 
 vi.mock("./storage.js", () => ({

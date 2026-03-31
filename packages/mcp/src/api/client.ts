@@ -3,7 +3,7 @@
  * Adds the getAgentIdentity() endpoint function specific to badge-server.
  */
 
-import type { AgentIdentityResponse } from "@kyalabs/shared-identity";
+import type { AgentIdentityResponse } from "@kyalabs/badge-sdk";
 import {
   BadgeApiError,
   getConfig,
@@ -14,7 +14,7 @@ import {
   introspectBadgeToken,
   getAgentIdentityWithToken,
   type IntrospectResult,
-} from "@kyalabs/shared-identity";
+} from "@kyalabs/badge-sdk";
 
 // Re-export shared infra for existing consumers
 export {

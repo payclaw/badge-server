@@ -1,10 +1,10 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { getAgentIdentity, _resetBrowseDeclaredCache } from "./getAgentIdentity.js";
-import * as sharedIdentity from "@kyalabs/shared-identity";
+import * as sharedIdentity from "@kyalabs/badge-sdk";
 import * as api from "../api/client.js";
 
-vi.mock("@kyalabs/shared-identity", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("@kyalabs/shared-identity")>();
+vi.mock("@kyalabs/badge-sdk", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@kyalabs/badge-sdk")>();
   return {
     ...actual,
     getStoredConsentKey: vi.fn(),
