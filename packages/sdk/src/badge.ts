@@ -14,7 +14,7 @@
  */
 
 import { getOrCreateInstallId } from "./storage.js";
-import { issueGuestPass, loadCachedGuestPass, cacheGuestPass, type GuestPassResult } from "./guest-pass.js";
+import { issueGuestPass, loadCachedGuestPass, type GuestPassResult } from "./guest-pass.js";
 
 export type IdentityType = "guest" | "verified" | "offline";
 
@@ -61,9 +61,9 @@ export class Badge {
     const installId = opts?.installId ?? getOrCreateInstallId();
 
     // Radar handoff: honor existing guest pass token (KYA-214)
+    // Skip caching — we don't know the real TTL of the handed-off token.
+    // The next API call will return the real expiry for proper caching.
     if (opts?.existingToken && opts.existingToken.startsWith("gp_v1_")) {
-      const expiresAt = new Date(Date.now() + 7 * 86400 * 1000).toISOString();
-      cacheGuestPass(opts.existingToken, expiresAt);
       return new Badge("guest", installId, opts.existingToken);
     }
 

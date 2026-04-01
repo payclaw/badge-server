@@ -111,12 +111,9 @@ describe("Badge", () => {
       expect(badge.installId).toBe("custom-id-123");
     });
 
-    it("caches existingToken for subsequent loads", async () => {
+    it("does not cache existingToken (unknown TTL)", async () => {
       await Badge.init({ existingToken: "gp_v1_cached_token" });
-      expect(guestPass.cacheGuestPass).toHaveBeenCalledWith(
-        "gp_v1_cached_token",
-        expect.any(String),
-      );
+      expect(guestPass.cacheGuestPass).not.toHaveBeenCalled();
     });
 
     it("does not call issueGuestPass when existingToken is valid", async () => {
