@@ -14,13 +14,19 @@
  */
 
 import { getOrCreateInstallId } from "./storage.js";
-import { issueGuestPass, loadCachedGuestPass, type GuestPassResult } from "./guest-pass.js";
+import { issueGuestPass, loadCachedGuestPass, cacheGuestPass, type GuestPassResult } from "./guest-pass.js";
 
 export type IdentityType = "guest" | "verified" | "offline";
 
 export interface BadgeInitOptions {
   /** Override the auto-generated install_id (for Docker/CI where filesystem is ephemeral) */
   installId?: string;
+  /**
+   * Use an existing guest pass token instead of issuing a new one.
+   * Pass a `gp_v1_*` token from a Radar-issued `_kya_gp` cookie to
+   * preserve the agent's Radar identity when upgrading to Badge SDK.
+   */
+  existingToken?: string;
   /** Platform string for telemetry */
   platform?: string;
   /** Agent client identifier */
@@ -53,6 +59,13 @@ export class Badge {
    */
   static async init(opts?: BadgeInitOptions): Promise<Badge> {
     const installId = opts?.installId ?? getOrCreateInstallId();
+
+    // Radar handoff: honor existing guest pass token (KYA-214)
+    if (opts?.existingToken && opts.existingToken.startsWith("gp_v1_")) {
+      const expiresAt = new Date(Date.now() + 7 * 86400 * 1000).toISOString();
+      cacheGuestPass(opts.existingToken, expiresAt);
+      return new Badge("guest", installId, opts.existingToken);
+    }
 
     // Try cached guest pass first
     const cached = loadCachedGuestPass();
