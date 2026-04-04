@@ -38,7 +38,7 @@ describe("guest-pass", () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
         json: async () => ({
-          token: "gp_v1_fresh_token",
+          guest_token: "gp_v1_fresh_token",
           expires_at: "2026-04-07T00:00:00Z",
           identity_type: "guest",
         }),
