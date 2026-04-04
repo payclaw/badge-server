@@ -25,8 +25,8 @@ jobs:
 
       - run: npm ci
 
-      - name: Build shared package
-        run: npm run build -w packages/shared
+      - name: Build SDK
+        run: npm run build -w packages/sdk
 
       - name: Lint
         run: npm run lint
@@ -34,8 +34,5 @@ jobs:
       - name: Build
         run: npm run build
 
-      - name: Test shared package
-        run: npm run test -w packages/shared -- run
-
       - name: Test
-        run: npx vitest run
+        run: npm test -w packages/sdk -- run && npm test -w packages/mcp -- run
