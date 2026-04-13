@@ -97,6 +97,13 @@ describe("Badge", () => {
       expect(badge.isGuest).toBe(true);
     });
 
+    it("uses existingToken when provided with kya_ prefix", async () => {
+      const badge = await Badge.init({ existingToken: "kya_test123abc" });
+      expect(badge.token).toBe("kya_test123abc");
+      expect(badge.identityType).toBe("verified");
+      expect(badge.isGuest).toBe(false);
+    });
+
     it("ignores existingToken without gp_v1_ prefix", async () => {
       const badge = await Badge.init({ existingToken: "invalid_token_format" });
       expect(badge.token).not.toBe("invalid_token_format");
@@ -119,6 +126,12 @@ describe("Badge", () => {
     it("does not call issueGuestPass when existingToken is valid", async () => {
       vi.mocked(guestPass.issueGuestPass).mockClear();
       await Badge.init({ existingToken: "gp_v1_skip_issue" });
+      expect(guestPass.issueGuestPass).not.toHaveBeenCalled();
+    });
+
+    it("does not call issueGuestPass when existing badge token is valid", async () => {
+      vi.mocked(guestPass.issueGuestPass).mockClear();
+      await Badge.init({ existingToken: "kya_skip_issue" });
       expect(guestPass.issueGuestPass).not.toHaveBeenCalled();
     });
   });
