@@ -1,6 +1,6 @@
 {
   "name": "@kyalabs/badge-sdk",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "Badge identity primitive for AI agents. Framework-agnostic SDK.",
   "type": "module",
   "main": "dist/index.js",

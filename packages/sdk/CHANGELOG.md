@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.1.1 (2026-04-16)
+
+### Fixed
+
+- `reportOutcome()` now accepts optional `source` param (was hardcoded to `"sdk"` — MCP adapter and Radar wrappers could not self-identify as event authors). Defaults to `"sdk"` for backward compatibility.
+
 ## 1.1.0 (2026-04-16)
 
 ### Added
