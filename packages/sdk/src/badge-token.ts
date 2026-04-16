@@ -21,8 +21,8 @@ const ENROLL_TIMEOUT_MS = 10_000;
 const KYA_DIR = join(homedir(), ".kya");
 const CACHE_FILE = join(KYA_DIR, "badge_tokens.json");
 
-/** Per-merchant badge token cache. Key = normalized merchant domain. */
-const badgeTokenCache = new Map<string, string>();
+/** Per-merchant badge token cache. Key = installId:merchant. */
+const badgeTokenCache = new Map<string, { token: string; expiresAt?: string }>();
 
 /** Track the last enrolled merchant for getHeaders() (no merchant context). */
 let lastEnrolledMerchant: string | null = null;
@@ -77,7 +77,7 @@ function loadPersistedBadgeToken(merchant: string, installId: string): string | 
     return null;
   }
 
-  badgeTokenCache.set(cacheKey(normalizedMerchant, installId), entry.token);
+  badgeTokenCache.set(cacheKey(normalizedMerchant, installId), { token: entry.token, expiresAt: entry.expiresAt });
   lastEnrolledMerchant = normalizedMerchant;
   return entry.token;
 }
@@ -90,7 +90,7 @@ function persistBadgeToken(
 ): void {
   const normalizedMerchant = normalizeMerchant(merchant);
   const key = cacheKey(normalizedMerchant, installId);
-  badgeTokenCache.set(key, token);
+  badgeTokenCache.set(key, { token, expiresAt });
   lastEnrolledMerchant = normalizedMerchant;
 
   const tokens = readPersistedBadgeTokens();
@@ -110,7 +110,13 @@ export async function enrollAndCacheBadgeToken(merchant: string): Promise<string
 
   // Check cache first
   const cached = badgeTokenCache.get(key);
-  if (cached) return cached;
+  if (cached) {
+    if (cached.expiresAt && new Date(cached.expiresAt) < new Date()) {
+      badgeTokenCache.delete(key);
+    } else {
+      return cached.token;
+    }
+  }
 
   const persisted = loadPersistedBadgeToken(normalizedMerchant, installId);
   if (persisted) return persisted;
@@ -176,8 +182,17 @@ export function getCachedBadgeToken(merchant?: string): string | null {
   if (merchant) {
     const installId = getOrCreateInstallId();
     const normalizedMerchant = normalizeMerchant(merchant);
-    const token = badgeTokenCache.get(cacheKey(normalizedMerchant, installId))
-      ?? loadPersistedBadgeToken(normalizedMerchant, installId);
+    const key = cacheKey(normalizedMerchant, installId);
+    const cached = badgeTokenCache.get(key);
+    let token: string | null = null;
+    if (cached) {
+      if (cached.expiresAt && new Date(cached.expiresAt) < new Date()) {
+        badgeTokenCache.delete(key);
+      } else {
+        token = cached.token;
+      }
+    }
+    token ??= loadPersistedBadgeToken(normalizedMerchant, installId);
     // Keep lastEnrolledMerchant in sync so no-arg getHeaders() uses the right merchant
     if (token) lastEnrolledMerchant = normalizedMerchant;
     return token;

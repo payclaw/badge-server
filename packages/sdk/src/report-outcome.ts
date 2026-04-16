@@ -15,6 +15,8 @@ interface ReportOutcomeResponse {
   status?: string;
 }
 
+// Token param is accepted for call-site symmetry with postDeclareVisit but not
+// sent — the anonymous /api/badge/report path authenticates via install_id only.
 export async function postReportOutcome(
   _token: string,
   args: ReportOutcomeArgs,

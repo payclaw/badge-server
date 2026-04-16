@@ -17,4 +17,13 @@ describe("inferContextFromUrl", () => {
   it("returns arrival for malformed URLs", () => {
     expect(inferContextFromUrl("not a valid url")).toBe("arrival");
   });
+
+  it("does not match cart as substring of other segments", () => {
+    expect(inferContextFromUrl("https://shop.test/cartoon")).toBe("arrival");
+    expect(inferContextFromUrl("https://shop.test/go-kart/items")).toBe("arrival");
+  });
+
+  it("returns checkout for /checkout/cart (checkout takes precedence)", () => {
+    expect(inferContextFromUrl("https://shop.test/checkout/cart")).toBe("checkout");
+  });
 });

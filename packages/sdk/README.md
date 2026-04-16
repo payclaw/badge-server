@@ -121,6 +121,7 @@ await badge.declareVisit({
   runId,
   url: 'https://merchant.test/cart',
   // or context: 'arrival' | 'addtocart' | 'checkout'
+  // source: 'sdk' | 'mcp' | 'radar' | 'inferred' (default: 'sdk')
 })
 ```
 
@@ -135,7 +136,8 @@ await badge.reportOutcome({
   merchant: 'merchant.test',
   runId,
   outcome: 'not_denied', // or 'denied' | 'unparseable'
-  frictionReason: 'merchant_rejection',
+  frictionReason: 'merchant_rejection', // optional
+  detail: 'CAPTCHA challenge on checkout', // optional free-text
 })
 ```
 

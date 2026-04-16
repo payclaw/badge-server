@@ -9,7 +9,7 @@ import { existsSync, readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
 import { getEnvApiUrl } from "./env.js";
-import { BADGE_VERSION } from "./version.js";
+
 
 const DEFAULT_API_URL = "https://www.kyalabs.io";
 const GUEST_PASS_TIMEOUT_MS = 5_000;
@@ -45,7 +45,7 @@ export async function issueGuestPass(
         iss: "sdk",
         platform: platform ?? `node/${process.version}`,
         agent_client: agentClient,
-        badge_version: badgeVersion ?? BADGE_VERSION,
+        badge_version: badgeVersion ?? "1.0.0",
       }),
       signal: controller.signal,
     });

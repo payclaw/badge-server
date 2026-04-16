@@ -99,6 +99,15 @@ describe("postDeclareVisit", () => {
     expect(result.recordedAs).toBe("offline");
   });
 
+  it("throws when runId is empty", async () => {
+    await expect(
+      postDeclareVisit("kya_test_123", {
+        merchant: "merchant.test",
+        runId: "",
+      }),
+    ).rejects.toThrow("runId is required");
+  });
+
   it("surfaces 4xx responses as BadgeApiError", async () => {
     mockFetch.mockResolvedValue({
       ok: false,

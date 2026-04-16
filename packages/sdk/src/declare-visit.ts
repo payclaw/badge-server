@@ -29,6 +29,9 @@ export async function postDeclareVisit(
   token: string,
   args: DeclareVisitArgs,
 ): Promise<DeclareResult> {
+  if (!args.runId) {
+    throw new Error("runId is required");
+  }
   const source = args.source ?? "sdk";
 
   try {

@@ -13,7 +13,7 @@ function requireEnv(name) {
 }
 
 async function enrollMerchant(installId, merchant) {
-  const token = await enrollAndCacheBadgeToken(merchant) ?? getCachedBadgeToken(merchant);
+  const token = getCachedBadgeToken(merchant) ?? await enrollAndCacheBadgeToken(merchant);
   if (!token) {
     throw new Error(`Could not enroll or recover badge token for ${merchant}`);
   }
